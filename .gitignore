@@ -22,3 +22,29 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ===== Backend (Spring Boot / Java) =====
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Java
+*.class
+
+# Spring Boot
+application-local.properties
+application-local.yml
+
+# Logs (backend)
+backend/logs/
+backend/*.log
+
+# IntelliJ / Eclipse
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+Thumbs.db
