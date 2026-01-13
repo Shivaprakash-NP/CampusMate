@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import './App.css'
 import type { Schedule, Topic } from './shared/types'
-import { mockSchedule } from './shared/mockData'
+import { mockSchedule, mockTopic } from './shared/mockData'
+import TopicsTable from './components/TopicsTable.tsx';
 
 function App() {
  const [schedule, setSchedule] = useState<Schedule>(mockSchedule);
+ const [topics,setTopics] = useState<Topic[]>(mockTopic);
 
- const toggleStatus = (dayDate:string, topicID:string) => {
+ const toggleStatusSchedule = (dayDate:string, topicID:string) => {
     setSchedule({
       ...schedule,
       days: schedule.days.map((day)=>
@@ -19,6 +21,15 @@ function App() {
       )
     })
  }
+
+
+ const toggleStatusTopic = (topicId: string)=> {
+    setTopics((prevTopics: Topic[]) => 
+      prevTopics.map((topic: Topic) => 
+        topic.id===topicId ? {...topic,completed: !topic.completed} : topic
+      )
+    )
+ }  
 
  return (
   <>
@@ -33,7 +44,7 @@ function App() {
             <div key={topic.id}>
             <li>{topic.title}</li>
             <p>{topic.completed ? "Completed" : "Not Completed"}</p>
-            <button onClick={() => toggleStatus(day.date,topic.id)}>Click</button>
+            <button onClick={() => toggleStatusSchedule(day.date,topic.id)}>Click</button>
             </div>
           );
           
@@ -42,6 +53,7 @@ function App() {
     </div>);
     
    })}
+   <TopicsTable topics={topics} toggleStatus={toggleStatusTopic}/>
    </>
  
  );
