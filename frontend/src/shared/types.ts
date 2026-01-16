@@ -29,3 +29,4 @@ export type Schedule = {
     createdAt: string,
     days: ScheduleDay[]
 }
+
