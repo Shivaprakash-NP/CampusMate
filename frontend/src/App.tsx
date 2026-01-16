@@ -3,6 +3,8 @@ import './App.css'
 import type { Schedule, Topic } from './shared/types'
 import { mockSchedule, mockTopic } from './shared/mockData'
 import TopicsTable from './components/TopicsTable.tsx';
+import Login from './components/auth/Login.tsx';
+import Signup from './components/auth/Signup.tsx';
 
 function App() {
  const [schedule, setSchedule] = useState<Schedule>(mockSchedule);
@@ -33,27 +35,12 @@ function App() {
 
  return (
   <>
-   <h1>{schedule.id}</h1>
-   {schedule.days.map((day)=>{
-    return (
-    <div key={day.date}>
-      <p>{day.date}</p>
-      <ul>
-        {day.topics.map((topic)=>{
-          return (
-            <div key={topic.id}>
-            <li>{topic.title}</li>
-            <p>{topic.completed ? "Completed" : "Not Completed"}</p>
-            <button onClick={() => toggleStatusSchedule(day.date,topic.id)}>Click</button>
-            </div>
-          );
-          
-        })}
-      </ul>
-    </div>);
-    
-   })}
-   <TopicsTable topics={topics} toggleStatus={toggleStatusTopic}/>
+   <Login></Login>   
+   <Signup></Signup>
+   <br />
+   <br />
+   <br />
+   <TopicsTable topics={topics} toggleStatus={toggleStatusTopic}/> 
    </>
  
  );
