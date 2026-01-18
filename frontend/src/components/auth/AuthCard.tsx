@@ -7,6 +7,7 @@ import {
   CardFooter,
   CardTitle,
 } from "@/components/ui/card"
+import { useAuth } from "@/AuthProvider";
 
 export type AuthCardProps = {
     title: string,
@@ -14,6 +15,7 @@ export type AuthCardProps = {
 }
 
 const AuthCard = ({title, children}: AuthCardProps)=>{
+  const {login} = useAuth()!
     return (
         <>
         <Card className="w-full max-w-sm">
@@ -24,7 +26,7 @@ const AuthCard = ({title, children}: AuthCardProps)=>{
                 {children}
             </CardContent>
              <CardFooter className="flex-col gap-2">
-        <Button type="submit" className="w-full">
+        <Button type="submit" onClick={()=> login()} className="w-full">
           {title}
         </Button>
         <Button variant="outline" className="w-full">

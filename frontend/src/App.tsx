@@ -3,12 +3,14 @@ import './App.css'
 import type { Schedule, Topic } from './shared/types'
 import { mockSchedule, mockTopic } from './shared/mockData'
 import TopicsTable from './components/TopicsTable.tsx';
-import Login from './components/auth/Login.tsx';
-import Signup from './components/auth/Signup.tsx';
+import { useAuth } from './AuthProvider.tsx';
+
 
 function App() {
  const [schedule, setSchedule] = useState<Schedule>(mockSchedule);
  const [topics,setTopics] = useState<Topic[]>(mockTopic);
+
+ const {logout} = useAuth()!
 
  const toggleStatusSchedule = (dayDate:string, topicID:string) => {
     setSchedule({
@@ -35,11 +37,7 @@ function App() {
 
  return (
   <>
-   <Login></Login>   
-   <Signup></Signup>
-   <br />
-   <br />
-   <br />
+  <button onClick={logout}>Logout</button>
    <TopicsTable topics={topics} toggleStatus={toggleStatusTopic}/> 
    </>
  
