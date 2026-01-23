@@ -10,7 +10,7 @@ function App() {
  const [schedule, setSchedule] = useState<Schedule>(mockSchedule);
  const [topics,setTopics] = useState<Topic[]>(mockTopic);
 
- const {logout} = useAuth()!
+ 
 
  const toggleStatusSchedule = (dayDate:string, topicID:string) => {
     setSchedule({
@@ -37,7 +37,6 @@ function App() {
 
  return (
   <>
-  <button onClick={logout}>Logout</button>
    <TopicsTable topics={topics} toggleStatus={toggleStatusTopic}/> 
    </>
  

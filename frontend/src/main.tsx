@@ -10,12 +10,15 @@ import Notfound from './components/Notfound.tsx'
 import AuthProvider from './AuthProvider.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
 import PublicRoute from './components/PublicRoute.tsx'
+import Onboarding from './components/Onboarding.tsx'
 
 const router = createBrowserRouter([
   {path: '/',element: <App/>},
   {path: '/dashboard', element: <ProtectedRoute><Dashboard/></ProtectedRoute>},
   {path: '/login',element: <PublicRoute><Login/></PublicRoute>},
-  {path: '/signup', element: <PublicRoute><Signup/></PublicRoute>},
+  {path: '/signup', element: <PublicRoute><Signup
+  /></PublicRoute>},
+  {path: '/onboarding', element: <Onboarding></Onboarding>},
   {path: '*',element: <Notfound/>}
 ])
 
