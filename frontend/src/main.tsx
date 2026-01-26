@@ -8,12 +8,15 @@ import Login from './components/auth/Login.tsx'
 import Signup from './components/auth/Signup.tsx'
 import Notfound from './components/Notfound.tsx'
 import AuthProvider from './AuthProvider.tsx'
-import ProtectedRoute from './components/ProtectedRoute.tsx'
-import PublicRoute from './components/PublicRoute.tsx'
+import ProtectedRoute from './components/routes/ProtectedRoute.tsx'
+import PublicRoute from './components/routes/PublicRoute.tsx'
 import Onboarding from './components/Onboarding.tsx'
+import RouteRedirect from './components/routes/RouteRedirect.tsx'
+import LandingPage from './components/Landing/LandingPage.tsx'
 
 const router = createBrowserRouter([
-  {path: '/',element: <App/>},
+  {path: '/',element: <RouteRedirect/>},
+  {path: '/landing',element: <LandingPage/>},
   {path: '/dashboard', element: <ProtectedRoute><Dashboard/></ProtectedRoute>},
   {path: '/login',element: <PublicRoute><Login/></PublicRoute>},
   {path: '/signup', element: <PublicRoute><Signup

@@ -1,0 +1,9 @@
+| Role                    | Color             | Why                      |
+| ----------------------- | ----------------- | ------------------------ |
+| **Primary action**      | `#38bdf8`         | Clear, friendly, visible |
+| **Secondary accent**    | `#818cf8`         | Calm emphasis            |
+| **Decorative glow**     | `#c084fc`         | Soft, non-aggressive     |
+| **Highlight / delight** | `#e879f9`         | Rare, emotional          |
+| **Focus / activity**    | `#22d3ee`         | Attention without stress |
+| **Background**          | `#020617` / black | Focus & contrast         |
+| **Text**                | `#ffffff`         | Readability              |
