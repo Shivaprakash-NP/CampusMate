@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { LampContainer } from "../ui/lamp";
 import { Button } from "../ui/button";
+import { Link } from "react-router-dom";
 
 export default function GetStarted() {
   const ref = useRef<HTMLDivElement>(null);
@@ -20,11 +21,10 @@ export default function GetStarted() {
   return (
     <section ref={ref}>
       <LampContainer>
-        {/* Heading */}
         <motion.h1
           style={{ y, opacity, scale }}
           className="
-            bg-gradient-to-br from-slate-300 to-slate-500
+            bg-linear-to-br from-slate-300 to-slate-500
             py-4 bg-clip-text
             text-center text-4xl md:text-7xl
             font-medium tracking-tight
@@ -36,14 +36,14 @@ export default function GetStarted() {
           Study Space
         </motion.h1>
 
-        {/* Button INSIDE lamp */}
         <motion.div
           className="mt-10"
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
         >
-          <Button
+            <Link to="/login">
+          <Button 
             variant="outline"
             className="
               px-6 py-6
@@ -59,6 +59,7 @@ export default function GetStarted() {
           >
             Get Started
           </Button>
+          </Link>
         </motion.div>
       </LampContainer>
     </section>

@@ -21,14 +21,14 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-    <section className="py-32 px-6 text-[rgb(var(--foreground))] flex items-center justify-center">
+    <section className="py-32 px-6 bg-background text-foreground flex items-center justify-center">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-semibold text-center mb-20">
           How Campus Mate works
         </h2>
 
         <div className="relative">
-          {/* vertical line */}
+        
           <div className="absolute left-4 top-0 h-full w-px bg-white/10" />
 
           <div className="space-y-16">
@@ -41,8 +41,7 @@ const HowItWorks = () => {
                 viewport={{ once: true, amount: 0.3 }}
                 className="relative pl-16"
               >
-                {/* dot */}
-                <div className="absolute left-2 top-1 h-3 w-3 rounded-full bg-[rgb(var(--primary))]" />
+                <div className="absolute left-2 top-1 h-3 w-3 rounded-full bg-primary" />
 
                 <h3 className="text-lg font-medium">
                   {step.title}

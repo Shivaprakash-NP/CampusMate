@@ -30,7 +30,7 @@ const AuthCard = ({title, children}: AuthCardProps)=>{
         <Button type="submit" onClick={()=> login()} className="w-full">
           {title}
         </Button>
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className="w-full text-foreground bg-background hover:bg-background hover:text-foreground">
           {title} with Google
         </Button>
       </CardFooter>
