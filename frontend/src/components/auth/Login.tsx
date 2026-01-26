@@ -5,7 +5,8 @@ import { Input } from "../ui/input"
 const Login = () => {
     return (
         <>
-            <AuthCard title="Login">
+        
+          <AuthCard title="Login">
                  <form>
           <div className="flex flex-col gap-6">
             <div className="grid gap-2">
@@ -32,6 +33,7 @@ const Login = () => {
           </div>
         </form>
             </AuthCard>
+            
         </>
     )
 }

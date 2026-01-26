@@ -18,6 +18,7 @@ const AuthCard = ({title, children}: AuthCardProps)=>{
   const {login} = useAuth()!
     return (
         <>
+        <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-sm">
             <CardHeader>
                 <CardTitle>{title}</CardTitle>
@@ -34,6 +35,8 @@ const AuthCard = ({title, children}: AuthCardProps)=>{
         </Button>
       </CardFooter>
         </Card>
+        </div>
+
         </>
     )
 }
