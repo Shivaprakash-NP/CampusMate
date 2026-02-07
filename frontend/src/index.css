@@ -55,7 +55,7 @@
   /* Brand (RGB triplets only) */
   --primary: 56 189 248;     /* #38bdf8 */
   --secondary: 129 140 248;  /* #818cf8 */
-  --accent: 192 132 252;     /* #c084fc */
+  --accent: 56 189 248;      /* #38bdf8 */
   --highlight: 232 121 249;  /* #e879f9 */
   --focus: 34 211 238;       /* #22d3ee */
 
