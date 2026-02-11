@@ -3,6 +3,8 @@ import TopicRow from "../components/TopicRow"
 import { mockTopicTree } from "../shared/mockData"
 import type { TopicNode } from "../shared/TopicNode"
 import Navbar from "./Navbar"
+import { OverallProgress } from "./ProgressBar"
+import { getProgress } from "@/shared/progress"
 
 const Dashboard = () => {
   const [topics, setTopics] = useState<TopicNode[]>(mockTopicTree)
@@ -22,8 +24,24 @@ const Dashboard = () => {
     setTopics(update(topics))
   }
 
+  const overall = topics.reduce(
+  (acc, node) => {
+    const p = getProgress(node)
+    return {
+      completed: acc.completed + p.completed,
+      total: acc.total + p.total,
+    }
+  },
+  { completed: 0, total: 0 }
+)
+
+const percentage =
+  overall.total > 0
+    ? Math.round((overall.completed / overall.total) * 100)
+    : 0
+
   return (
-    <div className="min-h-screen bg-[#020617] p-4">
+    <div className="min-h-screen bg-[#0b1a22] p-4">
       <div className="mx-auto max-w-7xl flex flex-col gap-4">
 
         {/* Navbar Card */}
@@ -44,8 +62,15 @@ const Dashboard = () => {
             </p>
           </div>
 
+          <OverallProgress
+            percentage={percentage}
+            completed={overall.completed}
+            total={overall.total}
+          />
+
+
           {/* Topics Card (reduced visual weight) */}
-          <div className="rounded-lg border border-white/5 bg-[#020617] p-4">
+          <div className="rounded-lg border border-white/5 bg-[#14232d] p-4">
             {topics.map(node => (
               <TopicRow
                 key={node.id}

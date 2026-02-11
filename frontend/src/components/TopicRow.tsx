@@ -3,14 +3,18 @@ import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus } from "lucide-re
 import type { TopicNode } from "../shared/TopicNode"
 import { LinearProgress } from "@mui/material"
 
+
+
 type Props = {
   node: TopicNode
   depth?: number
   toggleCompleted: (id: string) => void
 }
 
-// getting progress
-function getProgress(node: TopicNode): { completed: number; total: number } {
+export function getProgress(node: TopicNode): {
+  completed: number
+  total: number
+} {
   if (!node.children || node.children.length === 0) {
     return {
       completed: node.completed ? 1 : 0,
@@ -19,7 +23,7 @@ function getProgress(node: TopicNode): { completed: number; total: number } {
   }
 
   return node.children.reduce(
-    (acc: { completed: number; total: number }, child: any) => {
+    (acc: { completed: number; total: number }, child: TopicNode) => {
       const p = getProgress(child)
       return {
         completed: acc.completed + p.completed,
@@ -30,7 +34,10 @@ function getProgress(node: TopicNode): { completed: number; total: number } {
   )
 }
 
+
 const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
+
+ 
   const [open, setOpen] = useState(true)
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
@@ -40,6 +47,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
     progress && progress.total > 0
       ? Math.round((progress.completed / progress.total) * 100)
       : 0
+
 
   return (
     <>

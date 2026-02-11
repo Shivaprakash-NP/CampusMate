@@ -13,6 +13,7 @@ import PublicRoute from './components/routes/PublicRoute.tsx'
 import Onboarding from './components/Onboarding.tsx'
 import RouteRedirect from './components/routes/RouteRedirect.tsx'
 import LandingPage from './components/Landing/LandingPage.tsx'
+import StudyPlan from './components/StudyPlan.tsx'
 
 const router = createBrowserRouter([
   {path: '/',element: <RouteRedirect/>},
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
   {path: '/signup', element: <PublicRoute><Signup
   /></PublicRoute>},
   {path: '/onboarding', element: <Onboarding></Onboarding>},
+  {path: '/study-plan', element: <StudyPlan></StudyPlan>},
   {path: '*',element: <Notfound/>}
 ])
 
