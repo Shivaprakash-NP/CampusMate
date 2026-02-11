@@ -1,3 +1,4 @@
+import { useAuth } from "@/AuthProvider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +17,9 @@ import {
 } from "lucide-react"
 
 export function DropdownMenuAvatar() {
+
+  const {logout} = useAuth()!
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -42,7 +46,8 @@ export function DropdownMenuAvatar() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() =>{
+           logout()}}>
           <LogOutIcon />
           Sign Out
         </DropdownMenuItem>
