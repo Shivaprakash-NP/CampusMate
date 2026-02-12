@@ -21,9 +21,11 @@ export default function FileUpload() {
       const response = await axios.post("http://localhost:8080/api/upload", form, {
         headers: {
           "Content-Type": "multipart/form-data"
-        }
+        },
+        responseType: 'text' 
       });
-      
+
+      console.log(response.data); 
 
       setOutput(response.data)
 
