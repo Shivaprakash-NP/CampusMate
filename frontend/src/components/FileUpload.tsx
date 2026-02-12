@@ -13,7 +13,7 @@ export default function FileUpload() {
     setFile(selectedFile);
 
     const form = new FormData();
-    form.append("file", selectedFile);   // ✅ use selectedFile
+    form.append("file", selectedFile);
 
     try {
       await axios.post("http://localhost:8080/api/upload", form, {
