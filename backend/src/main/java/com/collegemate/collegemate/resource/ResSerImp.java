@@ -23,6 +23,10 @@ public class ResSerImp implements ResService {
                 "Syllabus:\n" +
                 syllabus;
 
-        return chatClient.prompt().user(prompt).call().content();
+        System.out.println(syllabus);
+        
+        String ans = chatClient.prompt().user(prompt).call().content();
+
+        return ans;
     }
 }
