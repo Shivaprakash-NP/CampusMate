@@ -27,7 +27,6 @@ public class ResSerImp implements ResService {
         
         String ans = chatClient.prompt().user(prompt).call().content();
 
-        System.out.println(ans);
         return ans;
     }
 }
