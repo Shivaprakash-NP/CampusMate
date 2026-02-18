@@ -1,40 +1,117 @@
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import AuthCard from "./AuthCard"
+import { signupUser } from "@/api/authApi"
+import { useAuth } from "@/AuthProvider"
 
+const Signup = () => {
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
-const Signup = ()=>{
-    return(
-        <>
-        <AuthCard title="Signup">
-            <form>
-          <div className="flex flex-col gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="sarvesh@gmail.com"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
-             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Reenter Password</Label>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
-          </div>
-        </form>
-            </AuthCard>
-        </>
-    )
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
+
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({
+      ...form,
+      [e.target.id]: e.target.value,
+    })
+  }
+
+  const handleSubmit = async () => {
+    setError(null)
+
+   
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      await signupUser({
+        email: form.email,
+        password: form.password,
+      })
+
+      
+      login()
+      navigate("/dashboard")
+
+    } catch (err: any) {
+      setError("Signup failed. Try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthCard title="Signup" onSubmit={handleSubmit}>
+      <div className="flex flex-col gap-6">
+
+        {/* Email */}
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="sarvesh@gmail.com"
+            required
+            value={form.email}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* Password */}
+        <div className="grid gap-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            required
+            value={form.password}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* Confirm Password */}
+        <div className="grid gap-2">
+          <Label htmlFor="confirmPassword">Re-enter Password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            required
+            value={form.confirmPassword}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <p className="text-sm text-red-500">
+            {error}
+          </p>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <p className="text-sm text-muted-foreground">
+            Creating account...
+          </p>
+        )}
+
+      </div>
+    </AuthCard>
+  )
 }
 
 export default Signup
