@@ -7,37 +7,32 @@ import {
   CardFooter,
   CardTitle,
 } from "@/components/ui/card"
-import { useAuth } from "@/AuthProvider";
-
 export type AuthCardProps = {
-    title: string,
-    children: React.ReactNode
+  title: string
+  children: React.ReactNode
+  onSubmit: () => void
 }
 
-const AuthCard = ({title, children}: AuthCardProps)=>{
-  const {login} = useAuth()!
-    return (
-        <>
-        <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-sm">
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {children}
-            </CardContent>
-             <CardFooter className="flex-col gap-2">
-        <Button type="submit" onClick={()=> login()} className="w-full">
-          {title}
-        </Button>
-        <Button variant="outline" className="w-full text-foreground bg-background hover:bg-background hover:text-foreground">
-          {title} with Google
-        </Button>
-      </CardFooter>
-        </Card>
-        </div>
+const AuthCard = ({ title, children, onSubmit }: AuthCardProps) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
 
-        </>
-    )
+        <CardContent>
+          {children}
+        </CardContent>
+
+        <CardFooter className="flex-col gap-2">
+          <Button type="button" onClick={onSubmit} className="w-full">
+            {title}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  )
 }
+
 export default AuthCard
