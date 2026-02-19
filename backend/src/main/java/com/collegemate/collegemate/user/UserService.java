@@ -10,8 +10,8 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-        public UserResponse getUser(Long userId) {
-        Users user = userRepository.findById(userId)
+        public UserResponse getUser(String email) {
+        Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User Not Found"));
 
         return new UserResponse(
