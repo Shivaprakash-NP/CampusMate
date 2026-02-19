@@ -21,8 +21,7 @@ const router = createBrowserRouter([
   {path: '/landing',element: <LandingPage/>},
   {path: '/dashboard', element: <ProtectedRoute><Dashboard/></ProtectedRoute>},
   {path: '/login',element: <PublicRoute><Login/></PublicRoute>},
-  {path: '/signup', element: <PublicRoute><Signup
-  /></PublicRoute>},
+  {path: '/signup', element: <Signup/>},
   {path: '/onboarding', element: <Onboarding></Onboarding>},
   {path: '/study-plan', element: <FileUpload></FileUpload>},
   {path: '*',element: <Notfound/>}

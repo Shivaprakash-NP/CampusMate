@@ -8,12 +8,13 @@ import { useAuth } from "@/AuthProvider"
 
 const Signup = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login } = useAuth() // Get the login function from context
 
   const [form, setForm] = useState({
     email: "",
     password: "",
     confirmPassword: "",
+    name: "" // Added name field since your DTO has it
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +30,6 @@ const Signup = () => {
   const handleSubmit = async () => {
     setError(null)
 
-   
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match")
       return
@@ -38,16 +38,23 @@ const Signup = () => {
     try {
       setLoading(true)
 
+      // 1. Call Backend API to create user & set cookie
       await signupUser({
+        name: form.name, // Pass name if your backend expects it
         email: form.email,
         password: form.password,
       })
 
+      // 2. CRITICAL STEP: Update the App Context!
+      // Since the cookie is already set by signupUser, we can just call login() 
+      // to flip the 'isAuthenticated' switch to true.
+      await login(form.email, form.password) 
       
-      login()
+      // 3. Redirect to Dashboard
       navigate("/dashboard")
 
     } catch (err: any) {
+      console.error(err)
       setError("Signup failed. Try again.")
     } finally {
       setLoading(false)
@@ -57,6 +64,19 @@ const Signup = () => {
   return (
     <AuthCard title="Signup" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-6">
+
+        {/* Name Field (Optional but good practice since your DTO has it) */}
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            type="text"
+            placeholder="John Doe"
+            required
+            value={form.name}
+            onChange={handleChange}
+          />
+        </div>
 
         {/* Email */}
         <div className="grid gap-2">
