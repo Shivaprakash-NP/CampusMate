@@ -13,7 +13,6 @@ import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import java.util.*;
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/topics")
 public class TopicController {

@@ -55,13 +55,15 @@ public class AuthenticationController {
         response.addCookie(cookie);
         return ResponseEntity.ok().build();
     }
-
     private void setCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("accessToken", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(24 * 60 * 60);
-        response.addCookie(cookie);
+        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("accessToken", token)
+                .httpOnly(true)
+                .secure(false) // Set to true if using HTTPS
+                .path("/")
+                .maxAge(24 * 60 * 60)
+                .sameSite("Lax") // Essential for cross-origin requests between ports
+                .build();
+                
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

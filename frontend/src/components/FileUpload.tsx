@@ -7,37 +7,23 @@ export default function FileUpload() {
   const [output,setOutput] = useState<any>(null)
 
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
-
-    setFile(selectedFile);
 
     const form = new FormData();
     form.append("file", selectedFile);   
 
     try {
       const response = await axios.post("http://localhost:8080/api/upload", form, {
-        headers: {
-          "Content-Type": "multipart/form-data"
-        },
+        withCredentials: true, 
         responseType: 'text' 
       });
-
-      console.log(response.data); 
-
-      setOutput(response.data)
-
-      console.log("file uploaded");
-      console.log(response.data)
-      console.log(response.status)
-      console.log(selectedFile.name);
-
+      setOutput(response.data);
     } catch (err) {
-      console.error(err);
+      console.error("Upload Error:", err);
     }
-  };
+};
 
   return (
     <>

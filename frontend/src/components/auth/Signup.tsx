@@ -28,38 +28,35 @@ const Signup = () => {
   }
 
   const handleSubmit = async () => {
-    setError(null)
-
+    setError(null);
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      // 1. Call Backend API to create user & set cookie
+      // 1. This call sets the HttpOnly cookie in the browser automatically
       await signupUser({
-        name: form.name, // Pass name if your backend expects it
+        name: form.name,
         email: form.email,
         password: form.password,
-      })
+      });
 
-      // 2. CRITICAL STEP: Update the App Context!
-      // Since the cookie is already set by signupUser, we can just call login() 
-      // to flip the 'isAuthenticated' switch to true.
-      await login(form.email, form.password) 
+      // 2. DO NOT call login(email, password) here.
+      // Instead, just update your local state. 
+      // If your useAuth() has a function like 'checkStatus' or 'setUser', use that.
+      // If 'login' is the only way to set the state, you might need to refactor 
+      // the AuthProvider to have a 'setAuthenticated(true)' method.
       
-      // 3. Redirect to Dashboard
-      navigate("/dashboard")
-
+      navigate("/dashboard");
     } catch (err: any) {
-      console.error(err)
-      setError("Signup failed. Try again.")
+      setError("Signup failed. Try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <AuthCard title="Signup" onSubmit={handleSubmit}>
