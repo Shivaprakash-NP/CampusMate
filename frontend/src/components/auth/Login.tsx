@@ -31,12 +31,7 @@ const Login = () => {
     try {
       setLoading(true)
 
-      await loginUser({
-        email: form.email,
-        password: form.password,
-      })
-
-      login() 
+      await login(form.email,form.password) 
       navigate("/dashboard")
 
     } catch (err: any) {

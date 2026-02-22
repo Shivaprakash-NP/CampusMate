@@ -8,12 +8,13 @@ import { useAuth } from "@/AuthProvider"
 
 const Signup = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login } = useAuth() // Get the login function from context
 
   const [form, setForm] = useState({
     email: "",
     password: "",
     confirmPassword: "",
+    name: "" // Added name field since your DTO has it
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -27,36 +28,52 @@ const Signup = () => {
   }
 
   const handleSubmit = async () => {
-    setError(null)
-
-   
+    setError(null);
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
+      // 1. This call sets the HttpOnly cookie in the browser automatically
       await signupUser({
+        name: form.name,
         email: form.email,
         password: form.password,
-      })
+      });
 
+      // 2. DO NOT call login(email, password) here.
+      // Instead, just update your local state. 
+      // If your useAuth() has a function like 'checkStatus' or 'setUser', use that.
+      // If 'login' is the only way to set the state, you might need to refactor 
+      // the AuthProvider to have a 'setAuthenticated(true)' method.
       
-      login()
-      navigate("/dashboard")
-
+      navigate("/dashboard");
     } catch (err: any) {
-      setError("Signup failed. Try again.")
+      setError("Signup failed. Try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <AuthCard title="Signup" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-6">
+
+        {/* Name Field (Optional but good practice since your DTO has it) */}
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            type="text"
+            placeholder="John Doe"
+            required
+            value={form.name}
+            onChange={handleChange}
+          />
+        </div>
 
         {/* Email */}
         <div className="grid gap-2">

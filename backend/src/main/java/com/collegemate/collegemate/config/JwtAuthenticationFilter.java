@@ -32,42 +32,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         
-        String jwt = null;
-        final String userEmail;
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+                response.setStatus(HttpServletResponse.SC_OK);
+                return;
+        }
 
-        // 1. Try to get token from Cookies
+        String jwt = null;
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("accessToken".equals(cookie.getName())) {
                     jwt = cookie.getValue();
-                    break;
                 }
             }
         }
 
-        // 2. If no token found in cookies, allow the request to proceed (it might be a public endpoint like /login)
         if (jwt == null) {
+            System.out.println("DEBUG: No JWT found in cookies");
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Extract Email from Token
-        userEmail = jwtService.extractUsername(jwt);
+        try {
+            String userEmail = jwtService.extractUsername(jwt);
+            System.out.println("DEBUG: Extracted Email: " + userEmail);
 
-        // 4. Authenticate User (Standard Spring Security Logic)
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                boolean isValid = jwtService.isTokenValid(jwt, userDetails);
+                System.out.println("DEBUG: Is Token Valid? " + isValid);
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (isValid) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println("DEBUG: SecurityContext set for: " + userEmail);
+                }
             }
+        } catch (Exception e) {
+            System.out.println("DEBUG: Filter Error: " + e.getMessage());
         }
         
         filterChain.doFilter(request, response);
