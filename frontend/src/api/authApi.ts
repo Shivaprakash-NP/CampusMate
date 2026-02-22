@@ -10,11 +10,8 @@ export const signupUser = (data: {name?:string, email:string, password:string}) 
 }
 
 export const checkAuth = () => {
-<<<<<<< HEAD
-    return axiosInstance.get("/auth/me")
-=======
     return axiosInstance.get("/auth/me");
->>>>>>> 933a9fd7e09b7e8bcce0101c1e95081106b6d9cf
+
 }
 
 export const logoutUser = () => {

@@ -8,7 +8,6 @@ import { useAuth } from "@/AuthProvider"
 
 const Signup = () => {
   const navigate = useNavigate()
-  const { login } = useAuth() // Get the login function from context
 
   const [form, setForm] = useState({
     email: "",
