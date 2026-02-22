@@ -1,6 +1,5 @@
 import type {Schedule, Topic} from '../shared/types'
-import ProgressBar from './ProgessBar'
-
+import { OverallProgress } from './ProgressBar'
 
 export type TopicProp = {
     topics: Topic[],
@@ -15,7 +14,7 @@ const TopicsTable = (props: TopicProp)=>{
 
     return(
         <>
-            <ProgressBar completedno={completedno} totalno={totalno} />
+            <OverallProgress percentage={100} completed={completedno} total={totalno} />
             <table className='topicTable'>
                 <thead>
                 <tr>

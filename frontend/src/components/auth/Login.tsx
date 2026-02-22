@@ -27,13 +27,17 @@ const Login = () => {
 
   const handleSubmit = async () => {
     setError(null)
+    
+    // ADD THIS VALIDATION
+    if (!form.email || !form.password) {
+        setError("Please enter both email and password.");
+        return;
+    }
 
     try {
       setLoading(true)
-
-      await login(form.email,form.password) 
+      await login(form.email, form.password) 
       navigate("/dashboard")
-
     } catch (err: any) {
       setError("Invalid email or password")
     } finally {
