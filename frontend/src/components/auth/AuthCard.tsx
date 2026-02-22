@@ -26,7 +26,7 @@ const AuthCard = ({ title, children, onSubmit }: AuthCardProps) => {
         </CardContent>
 
         <CardFooter className="flex-col gap-2">
-          <Button type="button" onClick={onSubmit} className="w-full">
+          <Button type="button" onClick={onSubmit}  className="w-full">
             {title}
           </Button>
         </CardFooter>
