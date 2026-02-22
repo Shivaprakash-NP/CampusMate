@@ -22,11 +22,19 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configure(http)) 
-            
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/upload").authenticated() // Keep it secure!
+                // 1. ADD /logout TO THIS PERMIT ALL LIST!
+                .requestMatchers(
+                    "/api/v1/auth/login", 
+                    "/api/v1/auth/signup", 
+                    "/api/v1/auth/logout" // <--- Added here
+                ).permitAll()
+                
+                // 2. Only /me remains explicitly protected here
+                .requestMatchers("/api/v1/auth/me").authenticated()
+                
+                .requestMatchers("/api/upload").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess

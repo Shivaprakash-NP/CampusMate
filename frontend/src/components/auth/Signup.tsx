@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import AuthCard from "./AuthCard"
-import { signupUser } from "@/api/authApi"
-import { useAuth } from "@/AuthProvider"
+import { useAuth } from "@/AuthProvider" // Pull directly from AuthProvider now
 
 const Signup = () => {
   const navigate = useNavigate()
@@ -13,7 +12,7 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    name: "" // Added name field since your DTO has it
+    name: "" 
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +27,13 @@ const Signup = () => {
 
   const handleSubmit = async () => {
     setError(null);
+    
+    // ADD THIS VALIDATION
+    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
+        setError("Please fill out all fields.");
+        return;
+    }
+  
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -35,20 +41,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-
-      // 1. This call sets the HttpOnly cookie in the browser automatically
-      await signupUser({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-      });
-
-      // 2. DO NOT call login(email, password) here.
-      // Instead, just update your local state. 
-      // If your useAuth() has a function like 'checkStatus' or 'setUser', use that.
-      // If 'login' is the only way to set the state, you might need to refactor 
-      // the AuthProvider to have a 'setAuthenticated(true)' method.
-      
+      await signup(form.name, form.email, form.password);
       navigate("/dashboard");
     } catch (err: any) {
       setError("Signup failed. Try again.");
@@ -61,7 +54,6 @@ const Signup = () => {
     <AuthCard title="Signup" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-6">
 
-        {/* Name Field (Optional but good practice since your DTO has it) */}
         <div className="grid gap-2">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -74,7 +66,6 @@ const Signup = () => {
           />
         </div>
 
-        {/* Email */}
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -87,7 +78,6 @@ const Signup = () => {
           />
         </div>
 
-        {/* Password */}
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -99,7 +89,6 @@ const Signup = () => {
           />
         </div>
 
-        {/* Confirm Password */}
         <div className="grid gap-2">
           <Label htmlFor="confirmPassword">Re-enter Password</Label>
           <Input
@@ -111,14 +100,12 @@ const Signup = () => {
           />
         </div>
 
-        {/* Error Message */}
         {error && (
           <p className="text-sm text-red-500">
             {error}
           </p>
         )}
 
-        {/* Loading State */}
         {loading && (
           <p className="text-sm text-muted-foreground">
             Creating account...

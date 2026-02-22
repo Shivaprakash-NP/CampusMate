@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { checkAuth, loginUser, logoutUser } from "./api/authApi"
+import { checkAuth, loginUser, logoutUser, signupUser } from "./api/authApi"
 
 type AuthContextType = {
   isAuthenticated: boolean,
-  login: (email:string, password:string) => Promise<void>,
-  logout: () => Promise<void>, // Updated return type
+  login: (email: string, password: string) => Promise<void>,
+  signup: (name: string, email: string, password: string) => Promise<void>, // <-- Added signup type
+  logout: () => Promise<void>,
   loading: boolean
 }
 
@@ -31,7 +32,7 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
   }, [])
 
   // 2. Login Function
-  const login = async (email:string, password:string) => {
+  const login = async (email: string, password: string) => {
     try {
         await loginUser({email, password});
         setIsAuthenticated(true);
@@ -42,15 +43,26 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
     }
   }
 
-  // 3. Logout Function (FIXED)
+  // 3. Signup Function (NEW)
+  const signup = async (name: string, email: string, password: string) => {
+    try {
+        await signupUser({ name, email, password });
+        // The backend sets the cookie, and we immediately update the React state!
+        setIsAuthenticated(true); 
+        return Promise.resolve();
+    } catch (error) {
+        console.error("Signup failed");
+        return Promise.reject(error);
+    }
+  }
+
+  // 4. Logout Function
   const logout = async () => {
     try {
         await logoutUser();
     } catch (error) {
-        // Even if the server gives 500 or 401, we just log it
         console.error("Logout API call failed", error);
     } finally {
-        // We ALWAYS clear the local state to kick the user out
         setIsAuthenticated(false);
     }
   }
@@ -58,7 +70,7 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
   if(loading) return <h2>Loading...</h2>
 
   return(
-    <AuthContext.Provider value={{isAuthenticated, login, logout, loading}}>
+    <AuthContext.Provider value={{isAuthenticated, login, signup, logout, loading}}>
       {children}
     </AuthContext.Provider>
   )
