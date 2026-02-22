@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import type { Schedule, Topic } from './shared/types'
-import { mockSchedule, mockTopic } from './shared/mockData'
+
 import TopicsTable from './components/TopicsTable.tsx';
 import { useAuth } from './AuthProvider.tsx';
 
@@ -9,8 +9,6 @@ import { useAuth } from './AuthProvider.tsx';
 function App() {
  const [schedule, setSchedule] = useState<Schedule>(mockSchedule);
  const [topics,setTopics] = useState<Topic[]>(mockTopic);
-
- 
 
  const toggleStatusSchedule = (dayDate:string, topicID:string) => {
     setSchedule({
