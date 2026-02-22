@@ -28,18 +28,15 @@ public class ResController {
             String content;
             String contentType = file.getContentType();
 
-            // 1. Handle PDF
             if (contentType != null && contentType.contains("pdf")) {
                 try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
                     content = new PDFTextStripper().getText(doc);
                 }
             } 
-            // 2. Handle Text or fallback (treat as plain text)
             else {
                 content = new String(file.getBytes(), StandardCharsets.UTF_8);
             }
 
-            // 3. Call Service and return the String result
             String result = resSerImp.getTopicsFromSyllubus(content);
             return ResponseEntity.ok(result);
 
