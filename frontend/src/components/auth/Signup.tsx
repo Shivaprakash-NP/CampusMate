@@ -5,7 +5,7 @@ import { Label } from "../ui/label"
 import AuthCard from "./AuthCard"
 import { useAuth } from "@/AuthProvider" // Pull directly from AuthProvider now
 
-const Signup = () => {
+const Signup = (name: string, email: string, password: string) => {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -41,7 +41,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      await signup(form.name, form.email, form.password);
+      await Signup(form.name, form.email, form.password);
       navigate("/dashboard");
     } catch (err: any) {
       setError("Signup failed. Try again.");
