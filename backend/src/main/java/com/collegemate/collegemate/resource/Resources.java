@@ -4,6 +4,7 @@ import org.hibernate.validator.constraints.URL;
 
 import com.collegemate.collegemate.common.enums.Types;
 import com.collegemate.collegemate.topic.Topic;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,5 +45,6 @@ public class Resources {
 
     @ManyToOne
     @JoinColumn(name = "topic_id", nullable = false)
+    @JsonBackReference("topic-resource")
     private Topic topic;
 }
