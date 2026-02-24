@@ -19,12 +19,12 @@ import FileUpload from './components/ui/fileupload.tsx'
 const router = createBrowserRouter([
   {path: '/', element: <RouteRedirect/>},
   {path: '/landing', element: <LandingPage/>},
-  {path: '/dashboard', element: <ProtectedRoute><Dashboard/></ProtectedRoute>},
-  {path: '/app', element: <ProtectedRoute><App/></ProtectedRoute>},   
+  {path: '/dashboard', element:<ProtectedRoute> <Dashboard/></ProtectedRoute>},
+  {path: '/app', element: <ProtectedRoute> <App/></ProtectedRoute> },   
   {path: '/login', element: <PublicRoute><Login/></PublicRoute>},
   {path: '/signup', element: <PublicRoute><Signup/></PublicRoute>},
   {path: '/onboarding', element: <Onboarding/>},
-  {path: '/study-plan', element: <ProtectedRoute><FileUpload/></ProtectedRoute>},
+  {path: '/study-plan', element: <ProtectedRoute> <FileUpload/></ProtectedRoute> },
   {path: '*', element: <Notfound/>}
 ])
 
