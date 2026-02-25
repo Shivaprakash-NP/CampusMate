@@ -6,36 +6,31 @@
 
 package com.collegemate.collegemate.topic;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.collegemate.collegemate.user.UserRepository;
 import com.collegemate.collegemate.user.Users;
 
 @Service
+@RequiredArgsConstructor
 public class TopicServiceImp implements TopicService {
     private final TopicRepository topicRepository;
-    private final UserRepository userRepository;
 
-    public TopicServiceImp(TopicRepository topicRepository, UserRepository userRepository) {
-        this.topicRepository = topicRepository;
-        this.userRepository = userRepository;
-    }
+    public double toggleTopicCompletion(Long topicId) {
+        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new RuntimeException("Topic not found"));
 
-    public List<Topic> getTopicList(Long user_id) {
-        return topicRepository.findByUsersId(user_id);
-    }
+        topic.setCompleted(!topic.isCompleted());
+        topicRepository.save(topic);
 
-    public Topic addNewTopic(Long userId, Topic topic) {
-        Users user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User Not Found"));
-        
-        topic.setUsers(user);
-        topic.setCompleted(false);
-        return topicRepository.save(topic);
-    }
+        long syllabusId = topic.getSyllabus().getId();
 
-    public Topic updateAsCompleted(Long topicId) {
-        Topic topic = topicRepository.findById(topicId).orElseThrow(() -> new RuntimeException("Topic Not Found"));
-        topic.setCompleted(true);
-        return topicRepository.save(topic);
+        long total = topicRepository.countSubtopicsBySyllabusId(syllabusId);
+        long completed = topicRepository.countCompletedSubtopicsBySyllabusId(syllabusId);
+
+        if(total == 0) return 0.0;
+
+        return ((double)(completed/total))*100.0;
     }
 }

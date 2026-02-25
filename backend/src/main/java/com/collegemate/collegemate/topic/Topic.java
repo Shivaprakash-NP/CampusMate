@@ -8,21 +8,11 @@ import com.collegemate.collegemate.resource.Resources;
 import com.collegemate.collegemate.syllabus.Syllabus;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import io.opencensus.resource.Resource;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,10 +39,11 @@ public class Topic {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private Users users;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nams = "parent_id")
+    @JoinColumn(name = "parent_id")
     @JsonBackReference("parent-subtopic")
     private Topic parentTopic;
 

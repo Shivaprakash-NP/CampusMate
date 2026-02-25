@@ -1,6 +1,7 @@
-package com.collegemate.collegemate.resource;
+package com.collegemate.collegemate.syllabus;
 
 import com.collegemate.collegemate.syllabus.Syllabus;
+import com.collegemate.collegemate.syllabus.dto.SyllabusDashboardDto;
 import lombok.RequiredArgsConstructor;
 
 import org.apache.pdfbox.Loader;
@@ -9,7 +10,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.collegemate.collegemate.resource.SylSerImp;
+import com.collegemate.collegemate.syllabus.SylSerImp;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -20,9 +21,9 @@ public class SylController {
     private final SylSerImp sylSerImp;
 
     @GetMapping("/syllabus")
-    public ResponseEntity<List<Syllabus>> getAllSyllabuses() {
+    public ResponseEntity<List<SyllabusDashboardDto>> getAllSyllabuses() {
         try {
-            List<Syllabus> syllabuses = sylSerImp.getAllUserSyllabuses();
+            List<SyllabusDashboardDto> syllabuses = sylSerImp.getAllUserSyllabuses();
             return ResponseEntity.ok(syllabuses);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(null);
