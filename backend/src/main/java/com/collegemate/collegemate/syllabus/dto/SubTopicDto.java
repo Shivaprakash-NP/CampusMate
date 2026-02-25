@@ -4,7 +4,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-class SubTopicDto {
+public class SubTopicDto {
     private String title;
     private List<ResourceDto> resources;
 }
