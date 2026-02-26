@@ -20,18 +20,14 @@ const Dashboard = () => {
   const [topics, setTopics] = useState<TopicNode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
-  // NEW: State to track the active syllabus ID and its progress from the backend
-  const [activeSyllabusId, setActiveSyllabusId] = useState<number | null>(null)
   const [progressData, setProgressData] = useState({
     completed: 0,
     total: 0,
     percentage: 0
   })
 
-  // 1. Fetch Data
   const fetchDashboardData = async () => {
     try {
-      // Fetch the summary list which contains progress metrics
       const listResponse = await fetch("/api/syllabus")
       if (!listResponse.ok) throw new Error("Failed to fetch syllabus list")
       
@@ -42,37 +38,43 @@ const Dashboard = () => {
         return
       }
 
-      // Grab the active syllabus (first one for now)
-      const activeSyllabus = listData[0]
-      const syllabusId = activeSyllabus.id
-      
-      setActiveSyllabusId(syllabusId)
-      
-      // Update progress state directly from the backend response
+      const totalCompleted = listData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const totalAll = listData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const totalPct = totalAll > 0 ? Math.round((totalCompleted / totalAll) * 100) : 0
+
       setProgressData({
-        completed: activeSyllabus.completedTopics,
-        total: activeSyllabus.totalTopics,
-        percentage: activeSyllabus.progressPercentage
+        completed: totalCompleted,
+        total: totalAll,
+        percentage: totalPct
       })
 
-      // Fetch the full details
-      const detailResponse = await fetch(`/api/syllabus/${syllabusId}`)
-      if (!detailResponse.ok) throw new Error(`Failed to fetch details`)
+      const allSyllabusesTree = await Promise.all(
+        listData.map(async (syllabus: any) => {
+          const detailResponse = await fetch(`/api/syllabus/${syllabus.id}`)
+          if (!detailResponse.ok) throw new Error(`Failed to fetch details`)
+          
+          const detailData = await detailResponse.json()
+          
+          const rawTopics = detailData.topics || [];
+          const subTopicIds = new Set();
+          rawTopics.forEach((topic: any) => {
+            if (topic.subTopics) {
+              topic.subTopics.forEach((sub: any) => subTopicIds.add(sub.id));
+            }
+          });
+          const trueRootTopics = rawTopics.filter((topic: any) => !subTopicIds.has(topic.id));
+          
+          return {
+            id: `syllabus-${detailData.id}`,
+            title: detailData.title, 
+            completed: false, 
+            resources: [],
+            children: mapBackendToFrontend(trueRootTopics) 
+          }
+        })
+      )
       
-      const detailData = await detailResponse.json()
-      
-      // Filter out the duplicates
-      const rawTopics = detailData.topics || [];
-      const subTopicIds = new Set();
-      rawTopics.forEach((topic: any) => {
-        if (topic.subTopics) {
-          topic.subTopics.forEach((sub: any) => subTopicIds.add(sub.id));
-        }
-      });
-      const trueRootTopics = rawTopics.filter((topic: any) => !subTopicIds.has(topic.id));
-      
-      const mappedTopics = mapBackendToFrontend(trueRootTopics)
-      setTopics(mappedTopics)
+      setTopics(allSyllabusesTree)
 
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -84,15 +86,14 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData()
   }, [])
-// 2. Toggle completion and sync with backend
-  const toggleCompleted = async (id: string) => {
-    let isChecking = true; // We need to know if we are checking or unchecking
 
-    // Optimistic UI Update: Snap the checkbox immediately
+  const toggleCompleted = async (id: string) => {
+    let isChecking = true; 
+
     const update = (nodes: TopicNode[]): TopicNode[] =>
       nodes.map(n => {
         if (n.id === id) {
-          isChecking = !n.completed; // Capture the new state
+          isChecking = !n.completed; 
           return { ...n, completed: !n.completed }
         }
         if (n.children && n.children.length > 0) {
@@ -103,72 +104,76 @@ const Dashboard = () => {
       
     setTopics(update(topics))
 
-    // Optimistically update the completed count so the "X / Y" text updates instantly
     setProgressData(prev => ({
       ...prev,
       completed: isChecking ? prev.completed + 1 : prev.completed - 1
     }))
 
-    // Send the PATCH request to the backend
     try {
       const response = await fetch(`/api/topics/${id}/toggle`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
       })
       
-      if (!response.ok) {
-        throw new Error("Failed to update topic status")
-      }
+      if (!response.ok) throw new Error("Failed to update topic status")
 
-      // Grab the exact progress percentage returned by the backend 
-      const data = await response.json()
+      const summaryRes = await fetch("/api/syllabus")
+      const summaryData = await summaryRes.json()
       
-      if (data && data.progress !== undefined) {
-        setProgressData(prev => ({
-          ...prev,
-          percentage: data.progress // Update the bar's width based on the database truth 
-        }))
-      }
+      const newTotalCompleted = summaryData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const newTotalAll = summaryData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const newTotalPct = newTotalAll > 0 ? Math.round((newTotalCompleted / newTotalAll) * 100) : 0
+
+      setProgressData({
+        completed: newTotalCompleted,
+        total: newTotalAll,
+        percentage: newTotalPct
+      })
 
     } catch (error) {
       console.error("Error toggling completion:", error)
-      // If it fails, revert the optimistic update
       setProgressData(prev => ({
         ...prev,
         completed: isChecking ? prev.completed - 1 : prev.completed + 1
       }))
     }
   }
+
   return (
-    <div className="min-h-screen bg-[#0b1a22] p-4">
-      <div className="mx-auto max-w-7xl flex flex-col gap-4">
+    // REFINED: p-2 on mobile, p-4 on md screens
+    <div className="min-h-screen bg-[#0b1a22] p-2 md:p-4">
+      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
+        
+        {/* Navbar Wrapper */}
         <div className="rounded-xl border border-white/10 bg-[#0b1220]">
           <Navbar />
         </div>
         
-        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-6 space-y-6">
-          <div className="flex flex-col gap-1.5">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">
+        {/* Main Content Wrapper - REFINED: p-4 on mobile, p-6 on md screens */}
+        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-4 md:p-6 space-y-4 md:space-y-6">
+          <div className="flex flex-col gap-1">
+            {/* REFINED: Smaller heading on mobile */}
+            <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
               Dashboard
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/60 text-xs md:text-sm">
               Track your learning progress
             </p>
           </div>
           
-          {/* Feed the backend progress state directly into the progress bar */}
           <OverallProgress
             percentage={progressData.percentage}
             completed={progressData.completed}
             total={progressData.total}
           />
           
-          <div className="rounded-lg border border-white/5 bg-[#14232d] p-4">
+          {/* Topics Wrapper - REFINED: p-2 on mobile, p-4 on md screens */}
+          <div className="rounded-lg border border-white/5 bg-[#14232d] p-2 md:p-4">
             {isLoading ? (
-              <div className="text-white/50 text-center py-4">Loading syllabus...</div>
+              <div className="text-white/50 text-center py-4 text-sm md:text-base">Loading syllabus...</div>
+            ) : topics.length === 0 ? (
+               <div className="text-white/50 text-center py-8 text-sm md:text-base">No subjects uploaded yet. Go upload a syllabus!</div>
             ) : (
               topics.map(node => (
                 <TopicRow
