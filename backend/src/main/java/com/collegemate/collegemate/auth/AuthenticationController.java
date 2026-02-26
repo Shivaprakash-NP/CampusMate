@@ -46,15 +46,18 @@ public class AuthenticationController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        // Overwrite the cookie with a null one that expires immediately
-        Cookie cookie = new Cookie("accessToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // Expire immediately
-        response.addCookie(cookie);
+        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("accessToken", "")
+                .httpOnly(true)
+                .secure(false) // Must match the creation cookie
+                .path("/")     // Must match the creation cookie
+                .maxAge(0)     // 0 forces the browser to delete it immediately
+                .sameSite("Lax") // Must match the creation cookie
+                .build();
+                
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.ok().build();
     }
+
     private void setCookie(HttpServletResponse response, String token) {
         org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from("accessToken", token)
                 .httpOnly(true)

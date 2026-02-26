@@ -1,18 +1,18 @@
 package com.collegemate.collegemate.topic;
 
-import com.collegemate.collegemate.common.enums.Difficulty;
-import com.collegemate.collegemate.user.Users;
+import java.util.ArrayList;
+import java.util.List;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.collegemate.collegemate.common.enums.Difficulty;
+import com.collegemate.collegemate.resource.Resources;
+import com.collegemate.collegemate.syllabus.Syllabus;
+import com.collegemate.collegemate.user.Users;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import io.opencensus.resource.Resource;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,12 +32,41 @@ public class Topic {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Difficulty difficulty;   
+    private Difficulty difficulty = Difficulty.MEDIUM;   
     
     @Column(nullable = false)
-    private boolean completed;
+    private boolean completed = false;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private Users users;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonBackReference("parent-subtopic")
+    private Topic parentTopic;
+
+    @OneToMany(mappedBy = "parentTopic", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("parent-subtopic")
+    private List<Topic> subTopics = new ArrayList<>();
+
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("topic-resource")
+    private List<Resources> resources = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "syllabus_id", nullable = false)
+    @JsonBackReference("syllabus-topic")    
+    private Syllabus syllabus;
+
+    public void addSubTopic(Topic subTopic) {
+        subTopics.add(subTopic);
+        subTopic.setParentTopic(this);
+    }
+
+    public void addResource(Resources resource) {
+        resources.add(resource);
+        resource.setTopic(this);
+    }
 }

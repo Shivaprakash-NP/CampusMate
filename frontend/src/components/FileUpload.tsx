@@ -17,7 +17,6 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const response = await axios.post("http://localhost:8080/api/upload", form, {
         withCredentials: true, 
-        responseType: 'text' 
       });
       setOutput(response.data);
     } catch (err) {
