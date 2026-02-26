@@ -14,7 +14,7 @@ import PublicRoute from './components/routes/PublicRoute.tsx'
 import Onboarding from './components/Onboarding.tsx'
 import RouteRedirect from './components/routes/RouteRedirect.tsx'
 import LandingPage from './components/Landing/LandingPage.tsx'
-import FileUpload from './components/ui/fileupload.tsx' 
+import FileUpload from './components/FileUpload.tsx' 
 
 const router = createBrowserRouter([
   {path: '/', element: <RouteRedirect/>},

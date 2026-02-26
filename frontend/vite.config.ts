@@ -12,4 +12,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // Forward anything that starts with /api to your backend
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        // secure: false, // Uncomment if your backend uses a self-signed HTTPS certificate
+      }
+    }
+}
 })
