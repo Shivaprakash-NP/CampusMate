@@ -4,6 +4,7 @@ import java.util.*;
 import com.collegemate.collegemate.topic.Topic;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.*;
@@ -16,6 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Syllabus {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +34,8 @@ public class Syllabus {
     @OneToMany(mappedBy = "syllabus", cascade = CascadeType.ALL, orphanRemoval = true)    
     @JsonManagedReference
     private List<Topic> topics = new ArrayList<>();
+
+    @Column(name = "content_hash")
+    @JsonIgnore
+    private String contentHash;
 }
