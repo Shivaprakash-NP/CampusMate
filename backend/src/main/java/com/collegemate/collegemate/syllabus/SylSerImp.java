@@ -6,6 +6,7 @@ import com.collegemate.collegemate.resource.Resources;
 import com.collegemate.collegemate.syllabus.Syllabus;
 import com.collegemate.collegemate.syllabus.SyllabusRepo;
 import com.collegemate.collegemate.syllabus.dto.SyllabusDashboardDto;
+import com.collegemate.collegemate.syllabus.dto.SyllabusResponseDto;
 import com.collegemate.collegemate.syllabus.dto.TopicResponseDto;
 import com.collegemate.collegemate.topic.Topic;
 import com.collegemate.collegemate.topic.TopicRepository;
@@ -19,6 +20,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 @Service
@@ -31,41 +34,72 @@ public class SylSerImp implements SylService {
     public final ObjectMapper objectMapper;
     public final TopicRepository topicRepository;
 
+    private String calculateSHA256(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+
+            for(byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if(hex.length() == 1) hexString.append("0");
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error calculating Hash", e);
+        }
+    }
+
     public Syllabus generateAndSaveSyllabus(String syllabusText, String syllabusTitle) {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
+        String getHex = calculateSHA256(syllabusText);
+        var getUser = syllabusRepo.findByUserAndContentHash(currentUser, getHex);
+
+        if(getUser.isPresent()) {
+            System.out.println("FOUND DUPLICATE");
+            return getUser.get();
+        } else {
+            System.out.println("NO DUP");
+        }
+
         String prompt = """
-            You are an expert curriculum parser. Extract all topics and subtopics from the following syllabus.
+            You are an expert curriculum parser. Extract the main subject name, along with all topics and subtopics from the following syllabus.
             You must respond ONLY with a valid JSON array matching the exact structure below. Do not include markdown formatting like ```json.
             Ensure the "type" field is strictly either "ARTICLE" or "VIDEO".
             
-            CRITICAL: The "url" field MUST be a raw, plain text URL only. DO NOT wrap the URL in markdown brackets like [url](url).
+            CRITICAL: The "url" field MUST be a raw, plain text URL only. DO NOT wrap the URL in markdown brackets.
             
             Structure:
-            [
-              {
-                "title": "Main Topic Name",
-                "children": [
-                  {
-                    "title": "Subtopic Name",
-                    "resources": [
-                      {
-                        "type": "VIDEO",
-                        "title": "YouTube Search: [Subtopic Name]",
-                        "url": "[https://www.youtube.com/results?search_query=Subtopic+Name](https://www.youtube.com/results?search_query=Subtopic+Name)"
-                      },
-                      {
-                        "type": "ARTICLE",
-                        "title": "Read about [Subtopic Name]",
-                        "url": "[https://www.google.com/search?q=site:geeksforgeeks.org+Subtopic+Name](https://www.google.com/search?q=site:geeksforgeeks.org+Subtopic+Name)"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
+            {
+              "syllabusTitle": "Extracted Subject Name (e.g. Operating Systems, HTML & CSS)",
+              "topics": [
+                {
+                  "title": "Main Topic Name",
+                  "children": [
+                    {
+                      "title": "Subtopic Name",
+                      "resources": [
+                        {
+                          "type": "VIDEO",
+                          "title": "YouTube Search: [Subtopic Name]",
+                          "url": "https://www.youtube.com/results?search_query=Subtopic+Name"
+                        },
+                        {
+                          "type": "ARTICLE",
+                          "title": "Read about [Subtopic Name]",
+                          "url": "https://www.google.com/search?q=site:geeksforgeeks.org+Subtopic+Name"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
             
             Syllabus Text:
             """ + syllabusText;
@@ -81,13 +115,14 @@ public class SylSerImp implements SylService {
                 jsonResponse = jsonResponse.substring(3, jsonResponse.length()-3).trim();
             }
 
-            List<TopicResponseDto> dtoList = objectMapper.readValue(jsonResponse, new TypeReference<List<TopicResponseDto>>() {});
+            SyllabusResponseDto parsedData = objectMapper.readValue(jsonResponse, SyllabusResponseDto.class);
             
             Syllabus syllabus = new Syllabus();
-            syllabus.setTitle(syllabusTitle);
+            syllabus.setTitle(parsedData.getSyllabusTitle());
             syllabus.setUser(currentUser);
+            syllabus.setContentHash(getHex);
 
-            for(TopicResponseDto mainDto : dtoList) {
+            for(TopicResponseDto mainDto : parsedData.getTopics()) {
                 Topic mainTopic = new Topic();
                 mainTopic.setTitle(mainDto.getTitle());
                 mainTopic.setCompleted(false);
@@ -108,19 +143,19 @@ public class SylSerImp implements SylService {
                             for(var resDto : subDto.getResources()) {
                                 Resources resource = new Resources();
                                 resource.setTitle(resDto.getTitle());
-                                resource.setUrl(resDto.getUrl());
+
+                                String rawURL = resDto.getUrl();
+                                if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
+                                    rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
+                                }
+
+                                resource.setUrl(rawURL);
 
                                 try {
                                     resource.setType(Types.valueOf(resDto.getType().toUpperCase()));
                                 } catch (IllegalArgumentException e) {
                                     resource.setType(Types.ARTICLE);
                                 }
-
-                                String rawURL = resDto.getUrl();
-                                if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
-                                    rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
-                                }
-                                resDto.setUrl(rawURL);
 
                                 subTopic.addResource(resource);
                             }

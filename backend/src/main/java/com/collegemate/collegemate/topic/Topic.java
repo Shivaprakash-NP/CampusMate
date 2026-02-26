@@ -9,6 +9,7 @@ import com.collegemate.collegemate.syllabus.Syllabus;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import io.opencensus.resource.Resource;
@@ -22,6 +23,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Topic {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
