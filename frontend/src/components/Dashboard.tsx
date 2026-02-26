@@ -113,7 +113,7 @@ const Dashboard = () => {
       const response = await fetch(`/api/topics/${id}/toggle`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}) 
+        credentials: "include",
       })
       
       if (!response.ok) throw new Error("Failed to update topic status")
