@@ -39,7 +39,7 @@ public class ChatService {
                                         .system(Sysprompt.toString())
                                         .user(chatReq.getMessage())
                                         .options(GoogleGenAiChatOptions.builder()
-                                                .model("gemini-1.5-flash")
+                                                .model("gemini-3-flash-preview")
                                                 .build())
                                         .call()
                                         .content();
