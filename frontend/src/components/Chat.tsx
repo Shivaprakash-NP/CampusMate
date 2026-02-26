@@ -4,7 +4,6 @@ import {
   FolderOpen, Mic, AudioLines, Share, Menu, ChevronDown,
   Copy, ThumbsUp, ThumbsDown, RotateCcw, MoreHorizontal, Loader2
 } from "lucide-react";
-import Navbar from "../components/Navbar";
 
 // Define our types
 type Message = { id: string; role: "user" | "ai"; content: string };
@@ -69,7 +68,7 @@ export default function Chat() {
       // Prepare the ChatDto payload
       const payload = {
         message: userText,
-        syllabusId: activeSubject?.id // Passes the context to your backend!
+        syllabusId: activeSubject?.id 
       };
 
       const response = await fetch("/api/chat", {
@@ -88,11 +87,15 @@ export default function Chat() {
       } else {
         throw new Error(data.error || "Failed to get response");
       }
-    } catch (error) {
-      console.error("Chat API Error:", error);
+    } catch (error: any) {
+      console.error("DETAILED ERROR:", error);
       setMessages((prev) => [
         ...prev, 
-        { id: Date.now().toString(), role: "ai", content: "⚠️ CampusMate is having trouble thinking right now. Please try again." }
+        { 
+          id: Date.now().toString(), 
+          role: "ai", 
+          content: `⚠️ Error: ${error.message || "CampusMate is having trouble thinking right now."}` 
+        }
       ]);
     } finally {
       setIsLoading(false);
@@ -119,13 +122,7 @@ export default function Chat() {
             </div>
             <Search className="h-4 w-4 text-white/50" />
           </button>
-          
-          <button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5">
-            <ImageIcon className="h-4 w-4" /> Images
-          </button>
-          <button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5">
-            <Terminal className="h-4 w-4" /> Codex
-          </button>
+         
         </div>
 
         {/* Dynamic Subjects List from Backend */}
@@ -157,16 +154,8 @@ export default function Chat() {
             ))}
           </div>
         </div>
-
-        <button className="flex items-center gap-3 p-3 text-sm transition-colors hover:bg-white/5 mx-2 mb-2 rounded-lg">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-medium">
-            SP
-          </div>
-          <div className="flex flex-col items-start truncate text-white/90">
-            <span className="truncate font-medium">Sarvesh Ponnusamy</span>
-            <span className="text-[10px] text-white/50">Go</span>
-          </div>
-        </button>
+        
+        {/* Removed the bottom user profile section here entirely */}
       </div>
 
       {/* MOBILE SIDEBAR OVERLAY */}
@@ -176,24 +165,37 @@ export default function Chat() {
 
       {/* MAIN CHAT AREA */}
       <div className="flex min-w-0 flex-1 flex-col relative">
-        <div className="w-full shrink-0"><Navbar /></div>
+        
+        {/* Removed the global Navbar here entirely */}
 
+        {/* Chat Header */}
         <div className="flex shrink-0 items-center justify-between px-4 py-3 md:px-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <button className="md:hidden rounded-md p-1.5 text-white/70 hover:bg-white/10" onClick={() => setIsSidebarOpen(true)}>
               <Menu className="h-5 w-5" />
             </button>
             <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-lg font-medium text-white/90 hover:bg-white/5 transition-colors">
-              CampusMate AI <ChevronDown className="h-4 w-4 text-white/50" />
+              CampusMate AI 
             </button>
           </div>
-          <button className="hidden md:flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-sm font-medium text-white/70 hover:bg-white/5 transition-colors">
-            <Share className="h-4 w-4" /> Share
-          </button>
+          
+          {/* UPDATED: Top Right Actions (Share Icon + Profile Avatar) */}
+          <div className="flex items-center gap-3 md:gap-4">
+            <button 
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+              title="Share chat"
+            >
+              <Share className="h-4 w-4" />
+            </button>
+            
+            <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#38bdf8] to-[#818cf8] text-sm font-medium text-white shadow-md transition-transform hover:scale-105">
+              SP
+            </button>
+          </div>
         </div>
 
         {/* Messages Feed */}
-        <div className="flex-1 overflow-y-auto px-4 pb-48 pt-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-48 pt-8">
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
             
             {messages.length === 0 && (
