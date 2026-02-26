@@ -8,8 +8,6 @@ const links = [
   { name: "Chat", path: "/chat" },
 ]
 
-const PILL_WIDTH = 110
-
 const Navbar = () => {
   const location = useLocation()
 
@@ -18,32 +16,40 @@ const Navbar = () => {
   )
 
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-  const currentIndex = hoverIndex ?? activeIndex
+  const currentIndex = hoverIndex ?? (activeIndex === -1 ? 0 : activeIndex)
 
   return (
     <header className="w-full">
-      <div className="flex h-14 items-center justify-between px-6">
+      {/* Reduced height and padding on mobile, standard on md+ */}
+      <div className="flex h-14 md:h-16 items-center justify-between px-3 md:px-6">
 
         {/* Brand */}
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold tracking-tight text-white">
+          {/* Show full text on small screens and up, hide on mobile to save space */}
+          <span className="hidden text-base font-bold tracking-tight text-white sm:block md:text-lg">
             CampusMate
           </span>
-          {/* Reduced visual dominance */}
-          <span className="h-1.5 w-1.5 rounded-full bg-[#38bdf8]/50" />
+          {/* Small dot logo for mobile only */}
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#38bdf8]/10 sm:hidden">
+            <span className="h-2 w-2 rounded-full bg-[#38bdf8]" />
+          </span>
+          {/* Standard dot for desktop */}
+          <span className="hidden h-1.5 w-1.5 rounded-full bg-[#38bdf8]/50 sm:block" />
         </div>
 
-        {/* Center Nav */}
+        {/* Center Nav - Responsive width container */}
         <nav
-          className="relative flex items-center rounded-full bg-white/5 p-1"
+          className="relative flex items-center rounded-full bg-white/5 p-1 w-[220px] sm:w-[280px] md:w-[330px]"
           onMouseLeave={() => setHoverIndex(null)}
         >
-          {/* Sliding pill */}
+          {/* Sliding pill: Uses CSS calc() to perfectly divide the container by 3. 
+            This makes it 100% responsive without needing JavaScript window listeners! 
+          */}
           <span
-            className="absolute h-8 rounded-full bg-[#38bdf8]/20 transition-transform duration-500 ease-in-out"
+            className="absolute h-7 md:h-8 rounded-full bg-[#38bdf8]/20 transition-transform duration-500 ease-in-out"
             style={{
-              width: `${PILL_WIDTH}px`,
-              transform: `translateX(${currentIndex * PILL_WIDTH}px)`,
+              width: "calc((100% - 8px) / 3)",
+              transform: `translateX(calc(${currentIndex * 100}%))`,
             }}
           />
 
@@ -52,7 +58,7 @@ const Navbar = () => {
               key={link.path}
               to={link.path}
               onMouseEnter={() => setHoverIndex(index)}
-              className="relative z-10 flex h-8 w-[110px] items-center justify-center text-sm text-white/70 transition-colors hover:text-white"
+              className="relative z-10 flex flex-1 h-7 md:h-8 items-center justify-center text-[11px] sm:text-xs md:text-sm text-white/70 transition-colors hover:text-white"
             >
               {link.name}
             </NavLink>
