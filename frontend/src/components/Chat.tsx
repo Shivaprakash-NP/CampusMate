@@ -158,15 +158,7 @@ export default function Chat() {
           </div>
         </div>
 
-        <button className="flex items-center gap-3 p-3 text-sm transition-colors hover:bg-white/5 mx-2 mb-2 rounded-lg">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-medium">
-            SP
-          </div>
-          <div className="flex flex-col items-start truncate text-white/90">
-            <span className="truncate font-medium">Sarvesh Ponnusamy</span>
-            <span className="text-[10px] text-white/50">Go</span>
-          </div>
-        </button>
+       
       </div>
 
       {/* MOBILE SIDEBAR OVERLAY */}
