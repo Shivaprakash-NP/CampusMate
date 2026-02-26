@@ -39,13 +39,14 @@ public class ChatService {
                                         .system(Sysprompt.toString())
                                         .user(chatReq.getMessage())
                                         .options(GoogleGenAiChatOptions.builder()
-                                                .model("gemini-1.5-flash")
+                                                .model("gemini-3-flash-preview")
                                                 .build())
                                         .call()
                                         .content();
 
             return ResponseEntity.ok(Map.of("reply", response));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "CampusMate is having trouble thinking right now."));
         }
     }
