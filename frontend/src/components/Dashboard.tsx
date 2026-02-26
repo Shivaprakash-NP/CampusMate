@@ -1,86 +1,190 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import TopicRow from "../components/TopicRow"
-import { mockTopicTree } from "../shared/mockData"
 import type { TopicNode } from "../shared/TopicNode"
 import Navbar from "./Navbar"
 import { OverallProgress } from "./ProgressBar"
-import { getProgress } from "@/shared/progress"
+
+// Helper function to map backend 'subTopics' to frontend 'children'
+const mapBackendToFrontend = (backendTopics: any[]): TopicNode[] => {
+  if (!backendTopics) return [];
+  return backendTopics.map((topic) => ({
+    id: topic.id.toString(), 
+    title: topic.title,
+    completed: topic.completed || false,
+    resources: topic.resources || [],
+    children: topic.subTopics ? mapBackendToFrontend(topic.subTopics) : [],
+  }))
+}
 
 const Dashboard = () => {
-  const [topics, setTopics] = useState<TopicNode[]>(mockTopicTree)
+  const [topics, setTopics] = useState<TopicNode[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const [progressData, setProgressData] = useState({
+    completed: 0,
+    total: 0,
+    percentage: 0
+  })
 
-  const toggleCompleted = (id: string) => {
+  const fetchDashboardData = async () => {
+    try {
+      const listResponse = await fetch("/api/syllabus")
+      if (!listResponse.ok) throw new Error("Failed to fetch syllabus list")
+      
+      const listData = await listResponse.json()
+      
+      if (!listData || listData.length === 0) {
+        setIsLoading(false)
+        return
+      }
+
+      const totalCompleted = listData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const totalAll = listData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const totalPct = totalAll > 0 ? Math.round((totalCompleted / totalAll) * 100) : 0
+
+      setProgressData({
+        completed: totalCompleted,
+        total: totalAll,
+        percentage: totalPct
+      })
+
+      const allSyllabusesTree = await Promise.all(
+        listData.map(async (syllabus: any) => {
+          const detailResponse = await fetch(`/api/syllabus/${syllabus.id}`)
+          if (!detailResponse.ok) throw new Error(`Failed to fetch details`)
+          
+          const detailData = await detailResponse.json()
+          
+          const rawTopics = detailData.topics || [];
+          const subTopicIds = new Set();
+          rawTopics.forEach((topic: any) => {
+            if (topic.subTopics) {
+              topic.subTopics.forEach((sub: any) => subTopicIds.add(sub.id));
+            }
+          });
+          const trueRootTopics = rawTopics.filter((topic: any) => !subTopicIds.has(topic.id));
+          
+          return {
+            id: `syllabus-${detailData.id}`,
+            title: detailData.title, 
+            completed: false, 
+            resources: [],
+            children: mapBackendToFrontend(trueRootTopics) 
+          }
+        })
+      )
+      
+      setTopics(allSyllabusesTree)
+
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const toggleCompleted = async (id: string) => {
+    let isChecking = true; 
+
     const update = (nodes: TopicNode[]): TopicNode[] =>
       nodes.map(n => {
         if (n.id === id) {
+          isChecking = !n.completed; 
           return { ...n, completed: !n.completed }
         }
-        if (n.children) {
+        if (n.children && n.children.length > 0) {
           return { ...n, children: update(n.children) }
         }
         return n
       })
-
+      
     setTopics(update(topics))
+
+    setProgressData(prev => ({
+      ...prev,
+      completed: isChecking ? prev.completed + 1 : prev.completed - 1
+    }))
+
+    try {
+      const response = await fetch(`/api/topics/${id}/toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}) 
+      })
+      
+      if (!response.ok) throw new Error("Failed to update topic status")
+
+      const summaryRes = await fetch("/api/syllabus")
+      const summaryData = await summaryRes.json()
+      
+      const newTotalCompleted = summaryData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const newTotalAll = summaryData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const newTotalPct = newTotalAll > 0 ? Math.round((newTotalCompleted / newTotalAll) * 100) : 0
+
+      setProgressData({
+        completed: newTotalCompleted,
+        total: newTotalAll,
+        percentage: newTotalPct
+      })
+
+    } catch (error) {
+      console.error("Error toggling completion:", error)
+      setProgressData(prev => ({
+        ...prev,
+        completed: isChecking ? prev.completed - 1 : prev.completed + 1
+      }))
+    }
   }
 
-  const overall = topics.reduce(
-  (acc, node) => {
-    const p = getProgress(node)
-    return {
-      completed: acc.completed + p.completed,
-      total: acc.total + p.total,
-    }
-  },
-  { completed: 0, total: 0 }
-)
-
-const percentage =
-  overall.total > 0
-    ? Math.round((overall.completed / overall.total) * 100)
-    : 0
-
   return (
-    <div className="min-h-screen bg-[#0b1a22] p-4">
-      <div className="mx-auto max-w-7xl flex flex-col gap-4">
-
-        {/* Navbar Card */}
+    // REFINED: p-2 on mobile, p-4 on md screens
+    <div className="min-h-screen bg-[#0b1a22] p-2 md:p-4">
+      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
+        
+        {/* Navbar Wrapper */}
         <div className="rounded-xl border border-white/10 bg-[#0b1220]">
           <Navbar />
         </div>
-
-        {/* Main Dashboard Card */}
-        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-6 space-y-6">
-
-          {/* Header (calmer hierarchy) */}
-          <div className="flex flex-col gap-1.5">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">
+        
+        {/* Main Content Wrapper - REFINED: p-4 on mobile, p-6 on md screens */}
+        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-4 md:p-6 space-y-4 md:space-y-6">
+          <div className="flex flex-col gap-1">
+            {/* REFINED: Smaller heading on mobile */}
+            <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
               Dashboard
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/60 text-xs md:text-sm">
               Track your learning progress
             </p>
           </div>
-
+          
           <OverallProgress
-            percentage={percentage}
-            completed={overall.completed}
-            total={overall.total}
+            percentage={progressData.percentage}
+            completed={progressData.completed}
+            total={progressData.total}
           />
-
-
-          {/* Topics Card (reduced visual weight) */}
-          <div className="rounded-lg border border-white/5 bg-[#14232d] p-4">
-            {topics.map(node => (
-              <TopicRow
-                key={node.id}
-                node={node}
-                toggleCompleted={toggleCompleted}
-              />
-            ))}
+          
+          {/* Topics Wrapper - REFINED: p-2 on mobile, p-4 on md screens */}
+          <div className="rounded-lg border border-white/5 bg-[#14232d] p-2 md:p-4">
+            {isLoading ? (
+              <div className="text-white/50 text-center py-4 text-sm md:text-base">Loading syllabus...</div>
+            ) : topics.length === 0 ? (
+               <div className="text-white/50 text-center py-8 text-sm md:text-base">No subjects uploaded yet. Go upload a syllabus!</div>
+            ) : (
+              topics.map(node => (
+                <TopicRow
+                  key={node.id}
+                  node={node}
+                  toggleCompleted={toggleCompleted}
+                />
+              ))
+            )}
           </div>
         </div>
-
       </div>
     </div>
   )

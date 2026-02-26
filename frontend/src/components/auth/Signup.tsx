@@ -8,6 +8,7 @@ import { useAuth } from "@/AuthProvider" // Pull directly from AuthProvider now
 const Signup = () => {
   const navigate = useNavigate()
   const {signup }= useAuth()!
+
   const [form, setForm] = useState({
     email: "",
     password: "",

@@ -11,7 +11,6 @@ export const signupUser = (data: {name?:string, email:string, password:string}) 
 
 export const checkAuth = () => {
     return axiosInstance.get("/auth/me");
-
 }
 
 export const logoutUser = () => {

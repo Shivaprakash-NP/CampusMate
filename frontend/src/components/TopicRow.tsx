@@ -38,7 +38,7 @@ export function getProgress(node: TopicNode): {
 const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
 
  
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
 
