@@ -49,7 +49,6 @@ public class ChatService {
         );
 
         this.chatClient = ChatClient.builder(customChatModel).build();
-
         this.topicRepository = topicRepository;
         this.syllabusRepo = syllabusRepo;
         this.chatMemory = MessageWindowChatMemory.builder().maxMessages(10).build();
