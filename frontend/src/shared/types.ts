@@ -30,3 +30,13 @@ export type Schedule = {
     days: ScheduleDay[]
 }
 
+export type Message = { 
+  id: string; 
+  role: "user" | "ai"; 
+  content: string;
+};
+
+export type SyllabusContext = { 
+  id: number; 
+  title: string; 
+};

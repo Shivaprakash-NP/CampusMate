@@ -3,8 +3,6 @@ import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus } from "lucide-re
 import type { TopicNode } from "../shared/TopicNode"
 import { LinearProgress } from "@mui/material"
 
-
-
 type Props = {
   node: TopicNode
   depth?: number
@@ -34,10 +32,7 @@ export function getProgress(node: TopicNode): {
   )
 }
 
-
 const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
-
- 
   const [open, setOpen] = useState(false)
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
@@ -48,6 +43,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
       ? Math.round((progress.completed / progress.total) * 100)
       : 0
 
+  
 
   return (
     <>
@@ -131,14 +127,41 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
             {node.title}
           </span>
 
-          {/* Resources */}
+{/* Resources */}
           <div className="flex gap-3 opacity-40 group-hover:opacity-100 transition">
-            {node.resources?.some((r: { type: string }) => r.type === "article") && (
-              <FileText className="h-4 w-4 text-[#38bdf8]" />
-            )}
-            {node.resources?.some((r: { type: string }) => r.type === "video") && (
-              <PlayCircle className="h-4 w-4 text-[#38bdf8]" />
-            )}
+            {node.resources?.map((r: { type: string; url?: string }, index: number) => {
+              // Changed "article" to "ARTICLE"
+              if (r.type === "ARTICLE" && r.url) {
+                return (
+                  <a
+                    key={index}
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Read Article"
+                    className="hover:scale-110 transition-transform"
+                  >
+                    <FileText className="h-4 w-4 text-[#38bdf8] hover:text-white transition-colors cursor-pointer" />
+                  </a>
+                )
+              }
+              // Changed "video" to "VIDEO"
+              if (r.type === "VIDEO" && r.url) {
+                return (
+                  <a
+                    key={index}
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Watch Video"
+                    className="hover:scale-110 transition-transform"
+                  >
+                    <PlayCircle className="h-4 w-4 text-[#38bdf8] hover:text-white transition-colors cursor-pointer" />
+                  </a>
+                )
+              }
+              return null
+            })}
           </div>
 
           {/* Practice */}

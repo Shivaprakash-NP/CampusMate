@@ -1,310 +1,193 @@
-import React, { useState, useEffect, useRef } from "react";
-import { 
-  Plus, Search, Image as ImageIcon, Grid, Terminal, 
-  FolderOpen, Mic, AudioLines, Share, Menu, ChevronDown,
-  Copy, ThumbsUp, ThumbsDown, RotateCcw, MoreHorizontal, Loader2
-} from "lucide-react";
-import Navbar from "../components/Navbar"; // Re-imported Navbar
+import { useState, useEffect } from "react"
+import TopicRow from "../components/TopicRow"
+import type { TopicNode } from "../shared/TopicNode"
+import Navbar from "./Navbar"
+import { OverallProgress } from "./ProgressBar"
 
-// Define our types
-type Message = { id: string; role: "user" | "ai"; content: string };
-type SyllabusContext = { id: number; title: string };
+// Helper function to map backend 'subTopics' to frontend 'children'
+const mapBackendToFrontend = (backendTopics: any[]): TopicNode[] => {
+  if (!backendTopics) return [];
+  return backendTopics.map((topic) => ({
+    id: topic.id.toString(), 
+    title: topic.title,
+    completed: topic.completed || false,
+    resources: topic.resources || [],
+    children: topic.subTopics ? mapBackendToFrontend(topic.subTopics) : [],
+  }))
+}
 
-export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+const Dashboard = () => {
+  const [topics, setTopics] = useState<TopicNode[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   
-  // Store the real syllabuses from your database
-  const [subjects, setSubjects] = useState<SyllabusContext[]>([]);
-  const [activeSubject, setActiveSubject] = useState<SyllabusContext | null>(null);
+  const [progressData, setProgressData] = useState({
+    completed: 0,
+    total: 0,
+    percentage: 0
+  })
 
-  // Auto-scroll ref
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(() => { scrollToBottom(); }, [messages, isLoading]);
-
-  // 1. Fetch the real syllabus list on mount
-  useEffect(() => {
-    const fetchSyllabuses = async () => {
-      try {
-        const res = await fetch("/api/syllabus");
-        if (res.ok) {
-          const data = await res.json();
-          setSubjects(data);
-          if (data.length > 0) {
-            setActiveSubject({ id: data[0].id, title: data[0].title });
-            setMessages([{
-              id: "welcome",
-              role: "ai",
-              content: `Hey Sarvesh! 👋\n\nI see you are studying **${data[0].title}**. What would you like to focus on today?`
-            }]);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch subjects:", error);
+  const fetchDashboardData = async () => {
+    try {
+      const listResponse = await fetch("/api/syllabus")
+      if (!listResponse.ok) throw new Error("Failed to fetch syllabus list")
+      
+      const listData = await listResponse.json()
+      
+      if (!listData || listData.length === 0) {
+        setIsLoading(false)
+        return
       }
-    };
-    fetchSyllabuses();
-  }, []);
 
-  // 2. Handle sending the message
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+      const totalCompleted = listData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const totalAll = listData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const totalPct = totalAll > 0 ? Math.round((totalCompleted / totalAll) * 100) : 0
 
-    const userText = inputValue;
-    setInputValue(""); 
-    
-    const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: userText };
-    setMessages((prev) => [...prev, newUserMsg]);
-    setIsLoading(true);
+      setProgressData({
+        completed: totalCompleted,
+        total: totalAll,
+        percentage: totalPct
+      })
+
+      const allSyllabusesTree = await Promise.all(
+        listData.map(async (syllabus: any) => {
+          const detailResponse = await fetch(`/api/syllabus/${syllabus.id}`)
+          if (!detailResponse.ok) throw new Error(`Failed to fetch details`)
+          
+          const detailData = await detailResponse.json()
+          
+          const rawTopics = detailData.topics || [];
+          const subTopicIds = new Set();
+          rawTopics.forEach((topic: any) => {
+            if (topic.subTopics) {
+              topic.subTopics.forEach((sub: any) => subTopicIds.add(sub.id));
+            }
+          });
+          const trueRootTopics = rawTopics.filter((topic: any) => !subTopicIds.has(topic.id));
+          
+          return {
+            id: `syllabus-${detailData.id}`,
+            title: detailData.title, 
+            completed: false, 
+            resources: [],
+            children: mapBackendToFrontend(trueRootTopics) 
+          }
+        })
+      )
+      
+      setTopics(allSyllabusesTree)
+
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const toggleCompleted = async (id: string) => {
+    let isChecking = true; 
+
+    const update = (nodes: TopicNode[]): TopicNode[] =>
+      nodes.map(n => {
+        if (n.id === id) {
+          isChecking = !n.completed; 
+          return { ...n, completed: !n.completed }
+        }
+        if (n.children && n.children.length > 0) {
+          return { ...n, children: update(n.children) }
+        }
+        return n
+      })
+      
+    setTopics(update(topics))
+
+    setProgressData(prev => ({
+      ...prev,
+      completed: isChecking ? prev.completed + 1 : prev.completed - 1
+    }))
 
     try {
-      const payload = {
-        message: userText,
-        syllabusId: activeSubject?.id 
-      };
-
-      const response = await fetch("/api/chat", {
-        method: "POST",
+      const response = await fetch(`/api/topics/${id}/toggle`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+        credentials: "include",
+      })
+      
+      if (!response.ok) throw new Error("Failed to update topic status")
 
-      const data = await response.json();
+      const summaryRes = await fetch("/api/syllabus")
+      const summaryData = await summaryRes.json()
+      
+      const newTotalCompleted = summaryData.reduce((acc: number, s: any) => acc + s.completedTopics, 0)
+      const newTotalAll = summaryData.reduce((acc: number, s: any) => acc + s.totalTopics, 0)
+      const newTotalPct = newTotalAll > 0 ? Math.round((newTotalCompleted / newTotalAll) * 100) : 0
 
-      if (response.ok && data.reply) {
-        setMessages((prev) => [
-          ...prev, 
-          { id: Date.now().toString(), role: "ai", content: data.reply }
-        ]);
-      } else {
-        throw new Error(data.error || "Failed to get response");
-      }
-    } catch (error: any) {
-      console.error("DETAILED ERROR:", error);
-      setMessages((prev) => [
-        ...prev, 
-        { 
-          id: Date.now().toString(), 
-          role: "ai", 
-          content: `⚠️ Error: ${error.message || "CampusMate is having trouble thinking right now."}` 
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
+      setProgressData({
+        completed: newTotalCompleted,
+        total: newTotalAll,
+        percentage: newTotalPct
+      })
+
+    } catch (error) {
+      console.error("Error toggling completion:", error)
+      setProgressData(prev => ({
+        ...prev,
+        completed: isChecking ? prev.completed - 1 : prev.completed + 1
+      }))
     }
-  };
+  }
 
   return (
-    // UNIFIED WRAPPER: Matches Dashboard padding and background
-    <div className="min-h-screen bg-[#0b1a22] p-2 md:p-4 font-sans">
-      
-      {/* UNIFIED CONTAINER: max-w-7xl ensures it doesn't stretch edge-to-edge */}
-      <div className="mx-auto flex h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)] max-w-7xl flex-col gap-3 md:gap-4">
+    // REFINED: p-2 on mobile, p-4 on md screens
+    <div className="min-h-screen bg-[#0b1a22] p-2 md:p-4">
+      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
         
-        {/* TOP NAVBAR CARD */}
-        <div className="shrink-0 rounded-xl border border-white/10 bg-[#0b1220]">
+        {/* Navbar Wrapper */}
+        <div className="rounded-xl border border-white/10 bg-[#0b1220]">
           <Navbar />
         </div>
-
-        {/* MAIN CHAT WORKSPACE CARD */}
-        <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-[#0b1220] shadow-2xl relative">
-          
-          {/* LEFT SIDEBAR */}
-          <div 
-            className={`${
-              isSidebarOpen ? "absolute z-30 flex h-full shadow-2xl" : "hidden"
-            } md:relative md:flex h-full w-[260px] shrink-0 flex-col bg-[#0b1220] md:bg-transparent transition-all duration-300 border-r border-white/5`}
-          >
-            <div className="flex flex-col gap-1 p-3">
-              <button 
-                onClick={() => setMessages([])} 
-                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-white/90 transition-colors hover:bg-white/5"
-              >
-                <div className="flex items-center gap-3">
-                  <Plus className="h-4 w-4" />
-                  New chat
-                </div>
-                <Search className="h-4 w-4 text-white/50" />
-              </button>
-              
-              <button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5">
-                <ImageIcon className="h-4 w-4" /> Images
-              </button>
-              <button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/5">
-                <Terminal className="h-4 w-4" /> Codex
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-3 py-2">
-              <div className="mb-2 px-3 text-xs font-semibold text-white/40">
-                Syllabus Contexts
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {subjects.map((subject) => (
-                  <button
-                    key={subject.id}
-                    onClick={() => {
-                      setActiveSubject(subject);
-                      setMessages([{
-                        id: Date.now().toString(),
-                        role: "ai",
-                        content: `Context switched to **${subject.title}**. Ask me anything about it!`
-                      }]);
-                    }}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      activeSubject?.id === subject.id 
-                        ? "bg-white/10 text-white font-medium" 
-                        : "text-white/70 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <FolderOpen className="h-4 w-4 shrink-0" />
-                    <span className="truncate text-left">{subject.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+        
+        {/* Main Content Wrapper - REFINED: p-4 on mobile, p-6 on md screens */}
+        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-4 md:p-6 space-y-4 md:space-y-6">
+          <div className="flex flex-col gap-1">
+            {/* REFINED: Smaller heading on mobile */}
+            <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
+              Dashboard
+            </h1>
+            <p className="text-white/60 text-xs md:text-sm">
+              Track your learning progress
+            </p>
           </div>
-
-          {/* MOBILE SIDEBAR OVERLAY */}
-          {isSidebarOpen && (
-            <div className="absolute inset-0 z-20 bg-black/60 md:hidden" onClick={() => setIsSidebarOpen(false)} />
-          )}
-
-          {/* MAIN CHAT AREA */}
-          <div className="flex min-w-0 flex-1 flex-col relative bg-[#0b1220]">
-            
-            {/* Chat Header */}
-            <div className="flex shrink-0 items-center justify-between px-4 py-3 md:px-6 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <button className="md:hidden rounded-md p-1.5 text-white/70 hover:bg-white/10" onClick={() => setIsSidebarOpen(true)}>
-                  <Menu className="h-5 w-5" />
-                </button>
-                <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-lg font-medium text-white/90 hover:bg-white/5 transition-colors">
-                  CampusMate AI <ChevronDown className="h-4 w-4 text-white/50" />
-                </button>
-              </div>
-              
-              <div className="flex items-center gap-3 md:gap-4">
-                <button 
-                  className="hidden md:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-                  title="Share chat"
-                >
-                  <Share className="h-4 w-4" />
-                </button>
-                <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#38bdf8] to-[#818cf8] text-sm font-medium text-white shadow-md transition-transform hover:scale-105">
-                  SP
-                </button>
-              </div>
-            </div>
-
-            {/* Messages Feed - Padded at top (pt-10) for breathing room below the border */}
-            <div className="flex-1 overflow-y-auto px-4 pb-48 pt-10">
-              <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-                
-                {messages.length === 0 && (
-                  <div className="flex h-full flex-col items-center justify-center pt-32">
-                    <h1 className="text-3xl font-semibold text-white">What are you working on?</h1>
-                  </div>
-                )}
-
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    {msg.role === "user" ? (
-                      <div className="max-w-[85%] md:max-w-[70%] rounded-3xl bg-[#2f2f2f] px-5 py-3 text-[15px] text-white">
-                        {msg.content}
-                      </div>
-                    ) : (
-                      <div className="w-full max-w-full text-[15px] leading-relaxed text-white/90 pr-4 animate-in fade-in duration-300">
-                        <div className="space-y-4 whitespace-pre-wrap">
-                          {msg.content.split('\n').map((line, i) => {
-                            if (line.includes('**')) {
-                              const parts = line.split('**');
-                              return (
-                                <p key={i}>
-                                  {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-white font-semibold">{part}</strong> : part)}
-                                </p>
-                              );
-                            }
-                            return <p key={i} className="min-h-[1rem]">{line}</p>;
-                          })}
-                        </div>
-                        
-                        <div className="mt-3 flex items-center gap-3 text-white/40">
-                          <button className="hover:text-white transition-colors p-1"><Copy className="h-4 w-4" /></button>
-                          <button className="hover:text-white transition-colors p-1"><ThumbsUp className="h-4 w-4" /></button>
-                          <button className="hover:text-white transition-colors p-1"><ThumbsDown className="h-4 w-4" /></button>
-                          <button className="hover:text-white transition-colors p-1"><RotateCcw className="h-4 w-4" /></button>
-                          <button className="hover:text-white transition-colors p-1"><MoreHorizontal className="h-4 w-4" /></button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {isLoading && (
-                  <div className="flex w-full justify-start animate-in fade-in">
-                    <div className="flex items-center gap-2 text-sm text-[#38bdf8]">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      CampusMate is thinking...
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-
-            {/* Input Area - Gradient updated to blend into the #0b1220 card background */}
-            <div className="absolute bottom-0 w-full bg-gradient-to-t from-[#0b1220] via-[#0b1220] to-transparent pb-6 pt-10 px-4 rounded-b-xl">
-              <div className="mx-auto w-full max-w-3xl">
-                <form onSubmit={handleSendMessage} className="flex w-full items-end gap-2 rounded-3xl bg-[#2f2f2f] px-3 py-3 shadow-lg focus-within:ring-1 focus-within:ring-white/20 transition-all">
-                  <button type="button" className="shrink-0 rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
-                    <Plus className="h-5 w-5" />
-                  </button>
-                  
-                  <textarea
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={isLoading ? "Please wait..." : "Ask anything"}
-                    disabled={isLoading}
-                    className="max-h-48 min-h-[24px] w-full resize-none self-center bg-transparent px-2 text-[15px] text-white placeholder-white/50 focus:outline-none disabled:opacity-50"
-                    rows={1}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(e);
-                      }
-                    }}
-                  />
-                  
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button type="button" className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
-                      <Mic className="h-5 w-5" />
-                    </button>
-                    <button 
-                      type="submit"
-                      disabled={!inputValue.trim() || isLoading}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105 disabled:bg-white/20 disabled:text-white/50 disabled:hover:scale-100"
-                    >
-                      <AudioLines className="h-4 w-4" />
-                    </button>
-                  </div>
-                </form>
-                <div className="mt-3 text-center text-xs text-white/40">
-                  CampusMate AI can make mistakes. Check important info.
-                </div>
-              </div>
-            </div>
-
+          
+          <OverallProgress
+            percentage={progressData.percentage}
+            completed={progressData.completed}
+            total={progressData.total}
+          />
+          
+          {/* Topics Wrapper - REFINED: p-2 on mobile, p-4 on md screens */}
+          <div className="rounded-lg border border-white/5 bg-[#14232d] p-2 md:p-4">
+            {isLoading ? (
+              <div className="text-white/50 text-center py-4 text-sm md:text-base">Loading syllabus...</div>
+            ) : topics.length === 0 ? (
+               <div className="text-white/50 text-center py-8 text-sm md:text-base">No subjects uploaded yet. Go upload a syllabus!</div>
+            ) : (
+              topics.map(node => (
+                <TopicRow
+                  key={node.id}
+                  node={node}
+                  toggleCompleted={toggleCompleted}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
+
+export default Dashboard
