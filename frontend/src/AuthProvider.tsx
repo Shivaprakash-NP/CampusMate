@@ -1,10 +1,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { checkAuth, loginUser, logoutUser, signupUser } from "./api/authApi"
 
+// 1. Update the Type to include the new fields
 type AuthContextType = {
   isAuthenticated: boolean,
   login: (email: string, password: string) => Promise<void>,
-  signup: (name: string, email: string, password: string) => Promise<void>, // <-- Added signup type
+  signup: (
+    name: string, 
+    email: string, 
+    password: string, 
+    extra: { year: string; branch: string; college: string } // Added extra details
+  ) => Promise<void>, 
   logout: () => Promise<void>,
   loading: boolean
 }
@@ -16,7 +22,6 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // 1. Check if user is already logged in
   useEffect(() => {
     const verifyUser = async () => {
         try {
@@ -31,7 +36,6 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
     verifyUser();
   }, [])
 
-  // 2. Login Function
   const login = async (email: string, password: string) => {
     try {
         await loginUser({email, password});
@@ -43,20 +47,30 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
     }
   }
 
-  // 3. Signup Function (NEW)
-  const signup = async (name: string, email: string, password: string) => {
+  // 2. Updated Signup Function to pass extra fields to the API
+  const signup = async (
+    name: string, 
+    email: string, 
+    password: string, 
+    extra: { year: string; branch: string; college: string }
+  ) => {
     try {
-        await signupUser({ name, email, password });
-        // The backend sets the cookie, and we immediately update the React state!
+        // We spread the 'extra' object so all fields go to your signupUser API call
+        await signupUser({ 
+          name, 
+          email, 
+          password, 
+          ...extra 
+        });
+        
         setIsAuthenticated(true); 
         return Promise.resolve();
     } catch (error) {
-        console.error("Signup failed");
+        console.error("Signup failed", error);
         return Promise.reject(error);
     }
   }
 
-  // 4. Logout Function
   const logout = async () => {
     try {
         await logoutUser();
@@ -67,7 +81,11 @@ const AuthProvider = ({children}: {children: ReactNode}) => {
     }
   }
 
-  if(loading) return <h2>Loading...</h2>
+  if(loading) return (
+    <div className="min-h-screen bg-[#0b1220] flex items-center justify-center text-white">
+      <h2 className="text-xl font-medium animate-pulse">Loading...</h2>
+    </div>
+  )
 
   return(
     <AuthContext.Provider value={{isAuthenticated, login, signup, logout, loading}}>

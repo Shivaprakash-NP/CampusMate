@@ -2,128 +2,218 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select" // Ensure you have this Shadcn component
 import AuthCard from "./AuthCard"
 import { useAuth } from "@/AuthProvider" 
+import { ArrowLeft } from "lucide-react"
 
 const Signup = () => {
   const navigate = useNavigate()
   const { signup } = useAuth()!
 
+  // 1. Added step state and expanded form state
+  const [step, setStep] = useState(1)
   const [form, setForm] = useState({
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    name: "" 
+    year: "",
+    branch: "",
+    college: ""
   })
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.id]: e.target.value,
-    })
+    setForm({ ...form, [e.target.id]: e.target.value })
+  }
+
+  // Helper for Shadcn Select components
+  const handleSelectChange = (name: string, value: string) => {
+    setForm({ ...form, [name]: value })
+  }
+
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    
+    // Validate Step 1
+    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
+      setError("Please fill out all fields.")
+      return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+    
+    setStep(2)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    
-    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
-        setError("Please fill out all fields.");
-        return;
-    }
-  
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
-      return;
+    e.preventDefault()
+    setError(null)
+
+    // Validate Step 2
+    if (!form.year || !form.branch || !form.college) {
+      setError("Please provide your academic details.")
+      return
     }
 
     try {
-      setLoading(true);
-      await signup(form.name, form.email, form.password);
-      navigate("/dashboard");
+      setLoading(true)
+      // Send all form data to your signup function
+      await signup(form.name, form.email, form.password, {
+        year: form.year,
+        branch: form.branch,
+        college: form.college
+      })
+      navigate("/dashboard")
     } catch (err: any) {
-      setError("Signup failed. Try again.");
+      setError("Signup failed. Try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <AuthCard 
-      title="Create an account" 
-      subtitle="Join CampusMate to start organizing your studies"
-      buttonText="Sign Up"
-      loading={loading}
-      onSubmit={handleSubmit}
-      footerText="Already have an account?"
-      footerLinkText="Sign in"
-      footerLinkHref="/login"
-    >
-      <div className="flex flex-col gap-5">
+    <div className="relative">
+      {/* Back button for Step 2 */}
+      {step === 2 && (
+        <button 
+          onClick={() => setStep(1)}
+          className="absolute top-8 left-8 flex items-center gap-2 text-white/60 hover:text-white transition-colors z-10"
+        >
+          <ArrowLeft size={18} /> Back
+        </button>
+      )}
 
-        <div className="grid gap-2">
-          <Label htmlFor="name" className="text-white/80">Name</Label>
-          <Input
-            id="name"
-            type="text"
-            placeholder="Sarvesh"
-            required
-            value={form.name}
-            onChange={handleChange}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
-          />
+      <AuthCard 
+        title={step === 1 ? "Create an account" : "Academic Details"} 
+        subtitle={step === 1 ? "Join CampusMate to start organizing your studies" : "Tell us a bit more about your yourself"}
+        buttonText={step === 1 ? "Next" : "Sign Up"}
+        loading={loading}
+        onSubmit={step === 1 ? handleNext : handleSubmit}
+        footerText="Already have an account?"
+        footerLinkText="Sign in"
+        footerLinkHref="/login"
+      >
+        <div className="flex flex-col gap-5">
+          
+          {/* STEP 1: Account Info */}
+          {step === 1 && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="name" className="text-white/80">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Sarvesh"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="email" className="text-white/80">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="sarvesh@example.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="password" className="text-white/80">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword" className="text-white/80">Re-enter Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
+                />
+              </div>
+            </>
+          )}
+
+          {/* STEP 2: Academic Info */}
+          {step === 2 && (
+            <>
+              <div className="grid gap-2">
+                <Label className="text-white/80">Year</Label>
+                <Select onValueChange={(v) => handleSelectChange("year", v)} defaultValue={form.year}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-[#38bdf8]">
+                    <SelectValue placeholder="Select Year" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                    {["I", "II", "III", "IV", "V"].map((yr) => (
+                      <SelectItem key={yr} value={yr}>{yr}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="branch" className="text-white/80">Branch</Label>
+                <Input
+                  id="branch"
+                  type="text"
+                  placeholder="e.g. Computer Science"
+                  value={form.branch}
+                  onChange={handleChange}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-white/80">College</Label>
+                <Select onValueChange={(v) => handleSelectChange("college", v)} defaultValue={form.college}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-[#38bdf8]">
+                    <SelectValue placeholder="Select College" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                    <SelectItem value="ssn">SSN College of Engineering</SelectItem>
+                    <SelectItem value="snu">Shiv Nadar University</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {error && (
+            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
         </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="email" className="text-white/80">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="sarvesh@example.com"
-            required
-            value={form.email}
-            onChange={handleChange}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="password" className="text-white/80">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            value={form.password}
-            onChange={handleChange}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="confirmPassword" className="text-white/80">Re-enter Password</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            required
-            value={form.confirmPassword}
-            onChange={handleChange}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-[#38bdf8]"
-          />
-        </div>
-
-        {error && (
-          <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-      </div>
-    </AuthCard>
+      </AuthCard>
+    </div>
   )
 }
 
