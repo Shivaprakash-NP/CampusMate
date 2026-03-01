@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus, MessageSquare,Sparkles, Bot, MessageCircleQuestion, Zap } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus, Bot } from "lucide-react"
 import type { TopicNode } from "../shared/TopicNode"
 import { LinearProgress } from "@mui/material"
 import { useNavigate } from "react-router-dom"
@@ -7,9 +7,12 @@ import { useNavigate } from "react-router-dom"
 type Props = {
   node: TopicNode
   depth?: number
-  toggleCompleted: (id: string,e?: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => void
+  toggleCompleted: (id: string, e?: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => void
 }
 
+/**
+ * Calculates the progress of a node based on its children's completion status.
+ */
 export function getProgress(node: TopicNode): {
   completed: number
   total: number
@@ -33,13 +36,31 @@ export function getProgress(node: TopicNode): {
   )
 }
 
-
-
 const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false)
+  
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
+
+  // --- STATE PERSISTENCE LOGIC ---
+  
+  // Initialize state from localStorage using a lazy initializer
+  const [open, setOpen] = useState(() => {
+    if (isLeaf) return false;
+    // Check localStorage for a saved state using the unique node ID
+    const saved = localStorage.getItem(`topic_open_${node.id}`);
+    // Default to 'true' (open) if no saved state exists
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+
+  // Update localStorage whenever the 'open' state changes
+  useEffect(() => {
+    if (hasChildren) {
+      localStorage.setItem(`topic_open_${node.id}`, JSON.stringify(open));
+    }
+  }, [open, node.id, hasChildren]);
+
+  // --- PROGRESS CALCULATIONS ---
 
   const progress = hasChildren ? getProgress(node) : null
   const percentage =
@@ -47,36 +68,45 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
       ? Math.round((progress.completed / progress.total) * 100)
       : 0
 
+  // --- HANDLERS ---
   
-  const handleChatJump = () => {
-    // We pass the topic ID and Title via URL query parameters
+  const handleChatJump = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent toggling the row when clicking icons
     const chatUrl = `/chat?topicId=${node.id}&topicTitle=${encodeURIComponent(node.title)}`;
-    
-    navigate(chatUrl)
+    navigate(chatUrl);
   };
+
+  const toggleOpen = (e: React.MouseEvent) => {
+    if (hasChildren) {
+      e.stopPropagation();
+      setOpen(!open);
+    }
+  };
+
   return (
     <>
-      {/* PARENT ROW */}
+      {/* PARENT ROW (Header for collapsible sections) */}
       {hasChildren && (
         <div
+          onClick={toggleOpen}
           className="
             flex items-center justify-between
             rounded-lg px-3 py-2
             hover:bg-white/5
-            transition
+            transition cursor-pointer
           "
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
         >
           <div className="flex items-center gap-2">
-            <button onClick={() => setOpen(!open)}>
+            <div>
               {open ? (
                 <ChevronDown className="h-4 w-4 text-white/50" />
               ) : (
                 <ChevronRight className="h-4 w-4 text-white/50" />
               )}
-            </button>
+            </div>
 
-            <span className="text-sm text-white/75">
+            <span className="text-sm font-medium text-white/75 uppercase tracking-wider">
               {node.title}
             </span>
           </div>
@@ -102,7 +132,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
         </div>
       )}
 
-      {/* LEAF ROW */}
+      {/* LEAF ROW (The actual syllabus items/lessons) */}
       {isLeaf && (
         <div
           className="
@@ -117,7 +147,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
           "
           style={{ paddingLeft: `${depth * 20 + 16}px` }}
         >
-          {/* 1. Checkbox Column */}
+          {/* Checkbox */}
           <div className="flex items-center justify-start">
             <input
               type="checkbox"
@@ -127,7 +157,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
             />
           </div>
 
-          {/* 2. Title Column (Fills available space, truncates if too long) */}
+          {/* Title */}
           <span
             className={`truncate transition-colors ${
               node.completed ? "text-white/40" : "text-white/90"
@@ -137,14 +167,9 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
             {node.title}
           </span>
 
-         {/* 3. Actions Column */}
-          {/* Keep the global right-alignment and padding to nudge them left */}
+          {/* Actions Column */}
           <div className="flex items-center justify-end pr-6 opacity-30 group-hover:opacity-100 transition-opacity">
-            
-            {/* -- The 3 Resource Icons Group -- */}
-            {/* Changed 'gap-3' to 'gap-5' to increase the spacing between these 3 icons */}
             <div className="flex items-center gap-5">
-              
               {node.resources?.map((r: { type: string; url?: string }, index: number) => {
                 if (r.type === "ARTICLE" && r.url) {
                   return (
@@ -163,23 +188,19 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
                 return null
               })}
 
-              {/* Chat Icon */}
               <button onClick={handleChatJump} title={`Chat about ${node.title}`} className="hover:scale-110 transition-transform">
-                <Bot className="h-4 w-4  text-white hover:text-[#38bdf8] transition-colors" />
+                <Bot className="h-4 w-4 text-white hover:text-[#38bdf8] transition-colors" />
               </button>
-
             </div>
 
-            {/* -- The Plus Icon -- */}
-            {/* Added 'ml-8' to create a clear separation from the 3 icons */}
             <button title="Add Note" className="ml-8 hover:scale-110 transition-transform">
               <Plus className="h-4 w-4 text-white/50 hover:text-white transition-colors" />
             </button>
-            
           </div>
         </div>
       )}
-      {/* CHILDREN */}
+
+      {/* RECURSIVE CHILDREN RENDERING */}
       {open &&
         hasChildren &&
         node.children!.map((child: TopicNode) => (

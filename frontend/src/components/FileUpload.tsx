@@ -14,26 +14,43 @@ import Navbar from "../components/Navbar"
 
 type UploadStatus = "idle" | "uploading" | "processing" | "success" | "error"
 
+// Define a type for each individual upload task
+type FileTask = {
+  id: string
+  file: File
+  progress: number
+  status: UploadStatus
+}
+
 export default function FileUpload() {
-  const [file, setFile] = useState<File | null>(null)
-  const [output, setOutput] = useState<string | null>(null)
-  const [status, setStatus] = useState<UploadStatus>("idle")
-  const [progress, setProgress] = useState(0)
+  const [tasks, setTasks] = useState<FileTask[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const resetState = () => {
-    setFile(null)
-    setOutput(null)
-    setStatus("idle")
-    setProgress(0)
+  // Helper to update a specific task in the array
+  const updateTask = useCallback((id: string, updates: Partial<FileTask>) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, ...updates } : task))
+    )
+  }, [])
+
+  const removeTask = (id: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== id))
   }
 
   const uploadFile = useCallback(async (selectedFile: File) => {
-    setFile(selectedFile)
-    setStatus("uploading")
-    setProgress(0)
-    setOutput(null)
+    // Create a unique ID for this upload session
+    const taskId = Math.random().toString(36).substring(2, 11)
+    
+    const newTask: FileTask = {
+      id: taskId,
+      file: selectedFile,
+      progress: 0,
+      status: "uploading",
+    }
+
+    // Add to the list
+    setTasks((prev) => [newTask, ...prev])
 
     const form = new FormData()
     form.append("file", selectedFile)
@@ -44,64 +61,61 @@ export default function FileUpload() {
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
           const pct = Math.round((e.loaded / e.total) * 100)
-          setProgress(pct)
+          updateTask(taskId, { progress: pct })
           
           if (pct === 100) {
-            setStatus("processing")
+            updateTask(taskId, { status: "processing" })
           }
         }
       })
 
-      const result = await new Promise<string>((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(xhr.responseText)
+            resolve()
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`))
+            reject(new Error(`Status ${xhr.status}`))
           }
         }
         xhr.onerror = () => reject(new Error("Network error"))
-        // CRITICAL FIX: Changed to relative path to use your Vite Proxy and avoid CORS!
         xhr.open("POST", "/api/upload") 
         xhr.withCredentials = true
         xhr.send(form)
       })
 
-      setOutput(result)
-      setStatus("success")
+      updateTask(taskId, { status: "success", progress: 100 })
     } catch (err) {
       console.error("Upload Error:", err)
-      setStatus("error")
-      setOutput("Upload failed. Please try again.")
+      updateTask(taskId, { status: "error" })
     }
-  }, [])
+  }, [updateTask])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (!selectedFile) return
-    uploadFile(selectedFile)
+    const selectedFiles = e.target.files
+    if (!selectedFiles) return
+    // Allow multiple selection if needed, otherwise just take the first
+    Array.from(selectedFiles).forEach(file => uploadFile(file))
+    // Reset input so the same file can be uploaded again if deleted
+    if (inputRef.current) inputRef.current.value = ""
   }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     setIsDragging(true)
   }, [])
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     setIsDragging(false)
   }, [])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
-      e.stopPropagation()
       setIsDragging(false)
-      const droppedFile = e.dataTransfer.files?.[0]
-      if (droppedFile) {
-        uploadFile(droppedFile)
+      const droppedFiles = e.dataTransfer.files
+      if (droppedFiles) {
+        Array.from(droppedFiles).forEach(file => uploadFile(file))
       }
     },
     [uploadFile]
@@ -114,24 +128,19 @@ export default function FileUpload() {
   }
 
   return (
-    // REFINED: p-2 on mobile, p-4 on md screens
-<div className="min-h-screen text-white bg-gradient-to-b from-[#0f343f] via-[#0b1a22] to-[#0b1220] p-2 md:p-4 font-sans">
-        <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
-        
-        {/* Navbar Card */}
+    <div className="min-h-screen text-white bg-gradient-to-b from-[#0f343f] via-[#0b1a22] to-[#0b1220] p-2 md:p-4 font-sans">
+      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
         <div className="rounded-xl border border-white/10 bg-[#0b1220]">
           <Navbar />
         </div>
         
-        {/* Centered Upload Content - REFINED: pt-8 on mobile, pt-16 on md screens */}
         <div className="flex w-full flex-col items-center justify-center pt-8 md:pt-16 pb-8 md:pb-12 px-2">
           <div className="w-full max-w-2xl">
             {/* Header */}
             <div className="mb-6 md:mb-8 text-center">
-              {/* REFINED: Smaller icon box on mobile */}
-<div className="mx-auto mb-3 md:mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-transparent ring-1 ring-[#38bdf8]/50 shadow-[0_0_15px_rgba(56,189,248,0.3)] backdrop-blur-sm">                <FileUp className="h-6 w-6 md:h-7 md:w-7 text-[#38bdf8]" />
+              <div className="mx-auto mb-3 md:mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-transparent ring-1 ring-[#38bdf8]/50 shadow-[0_0_15px_rgba(56,189,248,0.3)] backdrop-blur-sm">
+                <FileUp className="h-6 w-6 md:h-7 md:w-7 text-[#38bdf8]" />
               </div>
-              {/* REFINED: Scaled text sizes */}
               <h1 className="text-balance text-xl md:text-2xl font-bold tracking-tight text-[#ffffff]">
                 Upload Your Files
               </h1>
@@ -140,21 +149,14 @@ export default function FileUpload() {
               </p>
             </div>
 
-            {/* Upload Card - REFINED: p-4 on mobile, p-6 on md screens */}
+            {/* Upload Card */}
             <div className="rounded-xl border border-white/10 bg-[#0b1220]/60 backdrop-blur-md p-4 md:p-6 shadow-2xl shadow-black/50">
               
-              {/* Drop Zone - REFINED: py-10 on mobile to save vertical space */}
+              {/* Drop Zone */}
               <div
                 role="button"
                 tabIndex={0}
-                aria-label="Upload file drop zone"
                 onClick={() => inputRef.current?.click()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    inputRef.current?.click()
-                  }
-                }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -162,127 +164,91 @@ export default function FileUpload() {
                   isDragging
                     ? "border-[#38bdf8] bg-[#38bdf8]/10"
                     : "border-slate-700 hover:border-[#38bdf8]/50 hover:bg-[#38bdf8]/5"
-                } ${(status === "uploading" || status === "processing") ? "pointer-events-none opacity-60" : ""}`}
+                }`}
               >
                 <input
                   ref={inputRef}
                   type="file"
+                  multiple // Added multiple support
                   className="sr-only"
                   onChange={handleFileChange}
-                  aria-label="Choose file to upload"
                 />
 
-                <div
-                  className={`mb-3 md:mb-4 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full transition-colors ${
-                    isDragging
-                      ? "bg-[#38bdf8]/20 text-[#38bdf8]"
-                      : "bg-slate-800 text-slate-400 group-hover:bg-[#38bdf8]/10 group-hover:text-[#38bdf8]"
-                  }`}
-                >
+                <div className={`mb-3 md:mb-4 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full transition-colors ${
+                    isDragging ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "bg-slate-800 text-slate-400 group-hover:bg-[#38bdf8]/10 group-hover:text-[#38bdf8]"
+                  }`}>
                   <Upload className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <p className="mb-1 text-xs md:text-sm font-medium text-[#ffffff] text-center">
-                  {isDragging ? "Drop your file here" : "Click to browse or drag and drop"}
+                  {isDragging ? "Drop your files here" : "Click to browse or drag and drop"}
                 </p>
                 <p className="text-[10px] md:text-xs text-slate-400">
                   PDF, DOCX, TXT, PPT, and more
                 </p>
               </div>
 
-              {/* File Info + Progress */}
-              {file && (
-                <div className="mt-4 md:mt-5 rounded-lg border border-slate-800 bg-[#020617]/50 p-3 md:p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg bg-[#38bdf8]/10">
-                      <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#38bdf8]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-xs md:text-sm font-medium text-[#ffffff]">
-                          {file.name}
-                        </p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            resetState()
-                          }}
-                          className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-[#ffffff]"
-                          aria-label="Remove file"
-                          disabled={status === "uploading" || status === "processing"}
-                        >
-                          <X className="h-3 w-3 md:h-4 md:w-4" />
-                        </button>
+              {/* File List Section */}
+              <div className="mt-6 space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                {tasks.map((task) => (
+                  <div key={task.id} className="rounded-lg border border-slate-800 bg-[#020617]/50 p-3 md:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg bg-[#38bdf8]/10">
+                        <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#38bdf8]" />
                       </div>
-                      <p className="mt-0.5 text-[10px] md:text-xs text-slate-400">
-                        {formatSize(file.size)}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-xs md:text-sm font-medium text-[#ffffff]">
+                            {task.file.name}
+                          </p>
+                          <button
+                            onClick={() => removeTask(task.id)}
+                            className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-[#ffffff]"
+                            disabled={task.status === "uploading" || task.status === "processing"}
+                          >
+                            <X className="h-3 w-3 md:h-4 md:w-4" />
+                          </button>
+                        </div>
+                        <p className="mt-0.5 text-[10px] md:text-xs text-slate-400">
+                          {formatSize(task.file.size)}
+                        </p>
 
-                      {/* Combined Progress bar & Processing state */}
-                      {(status === "uploading" || status === "processing") && (
-                        <div className="mt-3">
-                          <div className="mb-1 flex items-center justify-between text-[10px] md:text-xs text-slate-400">
-                            <span className="flex items-center gap-1.5">
-                              <Loader2 className="h-3 w-3 animate-spin text-[#22d3ee]" />
-                              {status === "processing" ? "Processing..." : "Uploading..."}
-                            </span>
-                            <span>{progress}%</span>
+                        {/* Progress Bar Area */}
+                        {(task.status === "uploading" || task.status === "processing") && (
+                          <div className="mt-3">
+                            <div className="mb-1 flex items-center justify-between text-[10px] md:text-xs text-slate-400">
+                              <span className="flex items-center gap-1.5">
+                                <Loader2 className="h-3 w-3 animate-spin text-[#22d3ee]" />
+                                {task.status === "processing" ? "Processing..." : "Uploading..."}
+                              </span>
+                              <span>{task.progress}%</span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                              <div 
+                                className={`h-full bg-[#22d3ee] transition-all duration-300 ${task.status === "processing" ? "animate-pulse opacity-70" : ""}`}
+                                style={{ width: `${task.progress}%` }}
+                              />
+                            </div>
                           </div>
-                          
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                            <div 
-                              className={`h-full bg-[#22d3ee] transition-all duration-300 ${
-                                status === "processing" ? "animate-pulse opacity-70" : ""
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
+                        )}
+
+                        {/* Status Messages */}
+                        {task.status === "success" && (
+                          <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-[#38bdf8]">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Upload complete
                           </div>
-                        </div>
-                      )}
-
-                      {/* Success state */}
-                      {status === "success" && (
-                        <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-[#38bdf8]">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Upload complete
-                        </div>
-                      )}
-
-                      {/* Error state */}
-                      {status === "error" && (
-                        <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-red-400">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Upload failed
-                        </div>
-                      )}
+                        )}
+                        {task.status === "error" && (
+                          <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-red-400">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Output / Response */}
-              {output && status === "success" && (
-                <div className="mt-4 md:mt-5 rounded-lg border border-slate-800 bg-[#020617] p-4 md:p-5 shadow-inner animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <h3 className="mb-2 md:mb-3 text-[10px] md:text-xs font-semibold uppercase tracking-wider text-[#c084fc]">
-                    Analysis Response
-                  </h3>
-                  <p className="whitespace-pre-wrap text-xs md:text-sm leading-relaxed text-slate-300 overflow-y-auto max-h-32 md:max-h-full">
-                    {output}
-                  </p>
-                </div>
-              )}
-
-              {/* Actions */}
-              {(status === "success" || status === "error") && (
-                <div className="mt-4 md:mt-5 flex justify-end animate-in fade-in duration-500">
-                  <button
-                    onClick={resetState}
-                    className="inline-flex h-8 md:h-9 items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-3 md:px-4 py-2 text-xs md:text-sm font-medium text-[#ffffff] transition-colors hover:border-[#38bdf8]/50 hover:bg-[#38bdf8]/10 hover:text-[#38bdf8] focus:outline-none focus:ring-1 focus:ring-[#38bdf8]"
-                  >
-                    <Upload className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
-                    Upload Another
-                  </button>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
 
             <p className="mt-3 md:mt-4 text-center text-[10px] md:text-xs text-slate-500">
