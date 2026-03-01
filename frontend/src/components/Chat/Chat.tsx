@@ -1,7 +1,7 @@
 // pages/Chat.tsx
 import React, { useState, useEffect } from "react";
 import Navbar from "../Navbar"; 
-import ChatSidebar from "./CharSidebar"
+import ChatSidebar from "./CharSidebar"; // Make sure this matches your actual file name!
 import ChatHeader from "./ChatHeader";
 import MessageFeed from "./MessageFeed";
 import ChatInput from "./ChatInput";
@@ -16,7 +16,7 @@ export default function Chat() {
   const [subjects, setSubjects] = useState<SyllabusContext[]>([]);
   const [activeSubject, setActiveSubject] = useState<SyllabusContext | null>(null);
 
- useEffect(() => {
+  useEffect(() => {
     const fetchSyllabuses = async () => {
       try {
         const res = await fetch("/api/syllabus");
@@ -37,9 +37,8 @@ export default function Chat() {
               content: `Hey Sarvesh! 👋\n\nI see you want to dive into **${topicTitle}**. What specific questions do you have about this topic?`
             }]);
             
-            // Optional: If you want to automatically select the parent syllabus in the sidebar,
-            // you'd need logic here to find which syllabus contains this topicId, 
-            // and then call setActiveSubject(foundSyllabus).
+            // Optional: Logic to find which syllabus contains this topicId
+            // and call setActiveSubject(foundSyllabus) could go here.
           } else if (data.length > 0) {
             // Default behavior if no specific topic was clicked
             handleSubjectChange(data[0]);
@@ -70,32 +69,80 @@ export default function Chat() {
     }]);
   };
 
+  // --- NEW STREAMING LOGIC ---
   const handleSendMessage = async (userText: string) => {
     const urlParams = new URLSearchParams(window.location.search);
     const topicId = urlParams.get("topicId");
-    const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: userText };
-    setMessages((prev) => [...prev, newUserMsg]);
+    
+    // Create unique IDs for both messages
+    const userMsgId = Date.now().toString();
+    const aiMsgId = (Date.now() + 1).toString();
+
+    // Immediately add the User message AND an empty AI placeholder to the screen
+    setMessages((prev) => [
+      ...prev, 
+      { id: userMsgId, role: "user", content: userText },
+      { id: aiMsgId, role: "ai", content: "" }
+    ]);
+    
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, syllabusId: activeSubject?.id ,topicId:topicId})
+        body: JSON.stringify({ message: userText, syllabusId: activeSubject?.id, topicId: topicId })
       });
-      const data = await response.json();
 
-      if (response.ok && data.reply) {
-        setMessages((prev) => [...prev, { id: Date.now().toString(), role: "ai", content: data.reply }]);
-      } else {
-        throw new Error(data.error || "Failed to get response");
+      if (!response.ok) throw new Error("Failed to connect to CampusMate");
+      if (!response.body) throw new Error("No readable stream available");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      // NEW: A flag to track if we've received the first piece of text
+      let isFirstChunk = true; 
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        let newContent = "";
+        
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            newContent += line.replace(/^data:\s?/, ''); 
+          }
+        }
+
+        if (newContent) {
+          // NEW: The moment we get actual text, turn off the loading spinner!
+          if (isFirstChunk) {
+            setIsLoading(false);
+            isFirstChunk = false;
+          }
+
+          setMessages((prev) => 
+            prev.map((msg) => 
+              msg.id === aiMsgId 
+                ? { ...msg, content: msg.content + newContent } 
+                : msg
+            )
+          );
+        }
       }
     } catch (error: any) {
-      setMessages((prev) => [...prev, { 
-        id: Date.now().toString(), role: "ai", 
-        content: `⚠️ Error: ${error.message || "CampusMate is having trouble thinking right now."}` 
-      }]);
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === aiMsgId 
+            ? { ...msg, content: `⚠️ Error: ${error.message || "CampusMate is having trouble thinking right now."}` }
+            : msg
+        )
+      );
     } finally {
+      // This is still here as a fallback in case the request fails entirely
       setIsLoading(false);
     }
   };
