@@ -1,13 +1,51 @@
+import { useState } from "react"
+import { Calendar, LayoutList } from "lucide-react"
 import Navbar from "./Navbar"
+import { CAMPUSMATE_PLAN } from "@/shared/generated-plan"
+import CalendarView from "./StudyPlan/CalendarView"
 
-const StudyPlanHeader = () => (
-  <div className="flex flex-col gap-1">
-    <h1 className="text-2xl font-semibold text-white tracking-tight">
-      Study Plan
-    </h1>
-    <p className="text-sm text-white/60">
-      Your personalized study roadmap
-    </p>
+const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void }) => (
+  <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold text-white tracking-tight">
+        Study Plan
+      </h1>
+      <p className="text-sm text-white/60">
+        Your personalized study roadmap
+      </p>
+    </div>
+
+    {/* TOGGLE ICONS WITH MORE SPACING AND SUBTLE SELECTION */}
+    <div className="flex items-center gap-4 p-2">
+      <button
+        onClick={() => setView('text')}
+        title="Text View"
+        className="p-1 transition-all group"
+      >
+        <LayoutList 
+          size={18} 
+          className={`transition-colors duration-200 ${
+            view === 'text' 
+              ? "text-[#38bdf8]" 
+              : "text-white/40 group-hover:text-white/70"
+          }`} 
+        />
+      </button>
+      <button
+        onClick={() => setView('calendar')}
+        title="Calendar View"
+        className="p-1 transition-all group"
+      >
+        <Calendar 
+          size={18} 
+          className={`transition-colors duration-200 ${
+            view === 'calendar' 
+              ? "text-[#38bdf8]" 
+              : "text-white/40 group-hover:text-white/70"
+          }`} 
+        />
+      </button>
+    </div>
   </div>
 )
 
@@ -212,21 +250,35 @@ const PlanProgress = () => {
   )
 }
 
-const StudyPlan = () => (
-  <div className="min-h-screen bg-[#0b1a22] p-4">
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div className="rounded-xl border border-white/10 bg-[#0b1220]">
-        <Navbar />
-      </div>
-      <div className="rounded-xl border border-white/10 bg-[#0b1220] p-6 space-y-6">
-        <StudyPlanHeader />
-        <PlanOverview />
-        <TodaysFocus />
-        <UpcomingSchedule />
-        <PlanProgress />
+
+
+const StudyPlan = () => {
+  const [view, setView] = useState<'text' | 'calendar'>('text')
+
+  return (
+    <div className="min-h-screen bg-[#0b1a22] p-4">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+        <div className="rounded-xl border border-white/10 bg-[#0b1220]">
+          <Navbar />
+        </div>
+        <div className="rounded-xl border border-white/10 bg-[#0b1220] p-6 space-y-6">
+          <StudyPlanHeader view={view} setView={setView} />
+          
+          <PlanOverview />
+
+          {view === 'text' ? (
+            <div className="space-y-6 animate-in fade-in">
+              <TodaysFocus />
+              <UpcomingSchedule />
+              <PlanProgress />
+            </div>
+          ) : (
+            <CalendarView planData={CAMPUSMATE_PLAN} />
+          )}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 export default StudyPlan
