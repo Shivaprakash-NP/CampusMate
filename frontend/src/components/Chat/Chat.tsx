@@ -16,14 +16,32 @@ export default function Chat() {
   const [subjects, setSubjects] = useState<SyllabusContext[]>([]);
   const [activeSubject, setActiveSubject] = useState<SyllabusContext | null>(null);
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchSyllabuses = async () => {
       try {
         const res = await fetch("/api/syllabus");
         if (res.ok) {
           const data = await res.json();
           setSubjects(data);
-          if (data.length > 0) {
+          
+          // 1. Check if we arrived with a specific topic context
+          const urlParams = new URLSearchParams(window.location.search);
+          const topicId = urlParams.get("topicId");
+          const topicTitle = urlParams.get("topicTitle");
+
+          if (topicId && topicTitle) {
+            // Provide a highly specific greeting for the topic
+            setMessages([{
+              id: Date.now().toString(),
+              role: "ai",
+              content: `Hey Sarvesh! 👋\n\nI see you want to dive into **${topicTitle}**. What specific questions do you have about this topic?`
+            }]);
+            
+            // Optional: If you want to automatically select the parent syllabus in the sidebar,
+            // you'd need logic here to find which syllabus contains this topicId, 
+            // and then call setActiveSubject(foundSyllabus).
+          } else if (data.length > 0) {
+            // Default behavior if no specific topic was clicked
             handleSubjectChange(data[0]);
           }
         }
@@ -43,7 +61,18 @@ export default function Chat() {
     }]);
   };
 
+  const handleNewChat = () => {
+    setActiveSubject(null); // This removes the highlight in the sidebar
+    setMessages([{
+      id: Date.now().toString(),
+      role: "ai",
+      content: "Hey Sarvesh! 👋\n\nYou've started a new general chat. How can I help you today?"
+    }]);
+  };
+
   const handleSendMessage = async (userText: string) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const topicId = urlParams.get("topicId");
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: userText };
     setMessages((prev) => [...prev, newUserMsg]);
     setIsLoading(true);
@@ -52,7 +81,7 @@ export default function Chat() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, syllabusId: activeSubject?.id })
+        body: JSON.stringify({ message: userText, syllabusId: activeSubject?.id ,topicId:topicId})
       });
       const data = await response.json();
 
@@ -94,7 +123,7 @@ export default function Chat() {
             subjects={subjects}
             activeSubject={activeSubject}
             onSelectSubject={handleSubjectChange}
-            onNewChat={() => setMessages([])}
+            onNewChat={handleNewChat}
           />
 
           <div className="flex min-w-0 flex-1 flex-col relative bg-[#0b1220]">

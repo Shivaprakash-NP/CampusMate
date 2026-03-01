@@ -25,13 +25,17 @@ export default function ChatInput({ onSendMessage, isLoading, isFullScreen }: Pr
     }
   };
 
-  return (
+ return (
     <div className={`absolute bottom-0 w-full bg-gradient-to-t from-[#0b1220] via-[#0b1220] to-transparent pb-6 pt-10 px-4 transition-all duration-500 ${
       isFullScreen ? 'rounded-none' : 'rounded-b-xl'
     }`}>
-      <div className="mx-auto w-full max-w-3xl">
-        <form onSubmit={handleSubmit} className="flex w-full items-end gap-2 rounded-3xl bg-[#2f2f2f] px-3 py-3 shadow-lg focus-within:ring-1 focus-within:ring-white/20 transition-all">
-          <button type="button" className="shrink-0 rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
+      {/* 1. Changed max-w-3xl to max-w-2xl for a narrower box */}
+      <div className="mx-auto w-full max-w-3xl"> 
+        
+        {/* 2. Reduced padding from px-3 py-3 to px-2 py-2 for a slimmer profile */}
+        <form onSubmit={handleSubmit} className="flex w-full items-end gap-2 rounded-3xl bg-[#2f2f2f] px-2 py-2 shadow-lg focus-within:ring-1 focus-within:ring-white/20 transition-all">
+          
+          <button type="button" className="shrink-0 rounded-full p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
             <Plus className="h-5 w-5" />
           </button>
           
@@ -40,13 +44,13 @@ export default function ChatInput({ onSendMessage, isLoading, isFullScreen }: Pr
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={isLoading ? "Please wait..." : "Ask anything"}
             disabled={isLoading}
-            className="max-h-48 min-h-[24px] w-full resize-none self-center bg-transparent px-2 text-[15px] text-white placeholder-white/50 focus:outline-none disabled:opacity-50"
+            className="max-h-32 min-h-[20px] w-full resize-none self-center bg-transparent px-2 text-[14px] text-white placeholder-white/50 focus:outline-none disabled:opacity-50"
             rows={1}
             onKeyDown={handleKeyDown}
           />
           
           <div className="flex shrink-0 items-center gap-1">
-            <button type="button" className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
+            <button type="button" className="rounded-full p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition-colors">
               <Mic className="h-5 w-5" />
             </button>
             <button 
@@ -58,10 +62,11 @@ export default function ChatInput({ onSendMessage, isLoading, isFullScreen }: Pr
             </button>
           </div>
         </form>
+        
         <div className="mt-3 text-center text-xs text-white/40">
           CampusMate AI can make mistakes. Check important info.
         </div>
       </div>
     </div>
-  );
+  )
 }

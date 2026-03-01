@@ -3,6 +3,7 @@ import TopicRow from "../components/TopicRow"
 import type { TopicNode } from "../shared/TopicNode"
 import Navbar from "./Navbar"
 import { OverallProgress } from "./ProgressBar"
+import confetti from "canvas-confetti"
 
 // Helper function to map backend 'subTopics' to frontend 'children'
 const mapBackendToFrontend = (backendTopics: any[]): TopicNode[] => {
@@ -87,7 +88,7 @@ const Dashboard = () => {
     fetchDashboardData()
   }, [])
 
-  const toggleCompleted = async (id: string) => {
+  const toggleCompleted = async (id: string,e?: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => {
     let isChecking = true; 
 
     const update = (nodes: TopicNode[]): TopicNode[] =>
@@ -108,6 +109,30 @@ const Dashboard = () => {
       ...prev,
       completed: isChecking ? prev.completed + 1 : prev.completed - 1
     }))
+
+    // 🌟 3. Fire the Star Burst Animation if they are checking the box!
+    if (isChecking && e) {
+      const target = e.target as Element;
+      const rect = target.getBoundingClientRect();
+      
+      // Calculate coordinates relative to the viewport (canvas-confetti uses 0 to 1 scale)
+      const x = (rect.left + (rect.width / 2)) / window.innerWidth;
+      const y = (rect.top + (rect.height / 2)) / window.innerHeight;
+
+          confetti({
+          particleCount: 15, // Keeps it subtle
+        spread: 360,       // Explodes in a full circle around the origin
+        origin: { x, y },
+        colors: ['#00BFFF', '#87CEFA', '#38BDF8', '#FFFFFF'], // Matches your cyan/blue UI + white
+        shapes: ['star', 'circle'], // Dropped 'square' for a cleaner "sparkle" look, but you can add it back!
+        ticks: 50,         // Disappears relatively quickly
+        gravity: 0.8,      // Slightly lower gravity so they "float" a bit instead of dropping fast
+        decay: 0.9,
+        startVelocity: 12, // Much lower velocity so it stays right near the checkbox
+        scalar: 0.8,       // Keeps the particles small
+        zIndex: 9999
+      });
+    }
 
     try {
       const response = await fetch(`/api/topics/${id}/toggle`, {
