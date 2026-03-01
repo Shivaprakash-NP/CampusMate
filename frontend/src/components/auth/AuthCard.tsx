@@ -53,7 +53,7 @@ const AuthCard = ({
             {children}
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-4 mt-2">
+          <CardFooter className="flex flex-col gap-4 mt-6">
             <Button 
               type="submit" 
               disabled={loading}
