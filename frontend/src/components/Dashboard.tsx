@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom" // Added for navigation
+import { Upload } from "lucide-react" // Added for the icon
 import TopicRow from "../components/TopicRow"
 import type { TopicNode } from "../shared/TopicNode"
 import Navbar from "./Navbar"
@@ -18,6 +20,7 @@ const mapBackendToFrontend = (backendTopics: any[]): TopicNode[] => {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate() // Initialize navigation
   const [topics, setTopics] = useState<TopicNode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
@@ -177,14 +180,30 @@ const Dashboard = () => {
         
         {/* Main Content Wrapper - REFINED: p-4 on mobile, p-6 on md screens */}
         <div className="rounded-xl border border-white/10 bg-[#0b1220] p-4 md:p-6 space-y-4 md:space-y-6">
-          <div className="flex flex-col gap-1">
-            {/* REFINED: Smaller heading on mobile */}
-            <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
-              Dashboard
-            </h1>
-            <p className="text-white/60 text-xs md:text-sm">
-              Track your learning progress
-            </p>
+          
+          {/* HEADER SECTION WITH UPLOAD BUTTON */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
+                Dashboard
+              </h1>
+              <p className="text-white/60 text-xs md:text-sm">
+                Track your learning progress
+              </p>
+            </div>
+          <button 
+              onClick={() => navigate("/fileupload")}
+              className="
+                flex items-center gap-2 
+                bg-white/5 border border-white/10 
+                text-white/70 hover:text-white hover:bg-white/10 
+                px-4 py-2 rounded-lg font-medium 
+                transition-all duration-200 text-sm md:text-base
+              "
+            >
+              <Upload className="h-4 w-4 md:h-5 md:w-5 opacity-70" />
+              Upload Syllabus
+            </button>
           </div>
           
           <OverallProgress

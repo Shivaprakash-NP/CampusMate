@@ -16,6 +16,7 @@ import RouteRedirect from './components/routes/RouteRedirect.tsx'
 import LandingPage from './components/Landing/LandingPage.tsx'
 import FileUpload from './components/FileUpload.tsx' 
 import Chat from './components/Chat/Chat.tsx'
+import StudyPlan from './components/StudyPlan.tsx'
 
 const router = createBrowserRouter([
   {path: '/', element: <RouteRedirect/>},
@@ -25,7 +26,8 @@ const router = createBrowserRouter([
   {path: '/login', element: <PublicRoute><Login/></PublicRoute>},
   {path: '/signup', element: <PublicRoute><Signup/></PublicRoute>},
   {path: '/onboarding', element: <Onboarding/>},
-  {path: '/study-plan', element: <ProtectedRoute> <FileUpload/></ProtectedRoute> },
+  {path: '/study-plan', element: <ProtectedRoute> <StudyPlan></StudyPlan></ProtectedRoute> },
+  {path: '/fileupload', element: <ProtectedRoute> <FileUpload/></ProtectedRoute> },
   {path: '/chat',element:<ProtectedRoute><Chat/></ProtectedRoute>},
   {path: '*', element: <Notfound/>}
 ])
