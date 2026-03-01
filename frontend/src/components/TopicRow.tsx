@@ -1,14 +1,13 @@
 import { useState } from "react"
-import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus } from "lucide-react"
+import { ChevronRight, ChevronDown, FileText, PlayCircle, Plus, MessageSquare,Sparkles, Bot, MessageCircleQuestion, Zap } from "lucide-react"
 import type { TopicNode } from "../shared/TopicNode"
 import { LinearProgress } from "@mui/material"
-
-
+import { useNavigate } from "react-router-dom"
 
 type Props = {
   node: TopicNode
   depth?: number
-  toggleCompleted: (id: string) => void
+  toggleCompleted: (id: string,e?: React.MouseEvent | React.ChangeEvent<HTMLInputElement>) => void
 }
 
 export function getProgress(node: TopicNode): {
@@ -35,9 +34,9 @@ export function getProgress(node: TopicNode): {
 }
 
 
-const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
 
- 
+const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false)
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
@@ -48,7 +47,13 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
       ? Math.round((progress.completed / progress.total) * 100)
       : 0
 
-
+  
+  const handleChatJump = () => {
+    // We pass the topic ID and Title via URL query parameters
+    const chatUrl = `/chat?topicId=${node.id}&topicTitle=${encodeURIComponent(node.title)}`;
+    
+    navigate(chatUrl)
+  };
   return (
     <>
       {/* PARENT ROW */}
@@ -102,57 +107,78 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
         <div
           className="
             group
-            grid grid-cols-[40px_1fr_80px_120px_80px_50px]
+            grid grid-cols-[32px_1fr_auto] gap-4
             items-center
             px-3 py-3
             border-t border-white/5
             hover:bg-white/5
-            transition
+            transition-colors
             text-sm
           "
           style={{ paddingLeft: `${depth * 20 + 16}px` }}
         >
-          {/* Checkbox */}
-          <input
-            type="checkbox"
-            checked={node.completed}
-            onChange={() => toggleCompleted(node.id)}
-            className="h-4 w-4 accent-[#38bdf8]"
-          />
+          {/* 1. Checkbox Column */}
+          <div className="flex items-center justify-start">
+            <input
+              type="checkbox"
+              checked={node.completed}
+              onChange={(e) => toggleCompleted(node.id, e)}
+              className="h-4 w-4 accent-[#38bdf8] cursor-pointer"
+            />
+          </div>
 
-          {/* Title */}
+          {/* 2. Title Column (Fills available space, truncates if too long) */}
           <span
-            className={
-              node.completed
-                ? "text-white/55"
-                : "text-white/90"
-            }
+            className={`truncate transition-colors ${
+              node.completed ? "text-white/40" : "text-white/90"
+            }`}
+            title={node.title}
           >
             {node.title}
           </span>
 
-          {/* Resources */}
-          <div className="flex gap-3 opacity-40 group-hover:opacity-100 transition">
-            {node.resources?.some((r: { type: string }) => r.type === "article") && (
-              <FileText className="h-4 w-4 text-[#38bdf8]" />
-            )}
-            {node.resources?.some((r: { type: string }) => r.type === "video") && (
-              <PlayCircle className="h-4 w-4 text-[#38bdf8]" />
-            )}
+         {/* 3. Actions Column */}
+          {/* Keep the global right-alignment and padding to nudge them left */}
+          <div className="flex items-center justify-end pr-6 opacity-30 group-hover:opacity-100 transition-opacity">
+            
+            {/* -- The 3 Resource Icons Group -- */}
+            {/* Changed 'gap-3' to 'gap-5' to increase the spacing between these 3 icons */}
+            <div className="flex items-center gap-5">
+              
+              {node.resources?.map((r: { type: string; url?: string }, index: number) => {
+                if (r.type === "ARTICLE" && r.url) {
+                  return (
+                    <a key={index} href={r.url} target="_blank" rel="noopener noreferrer" title="Read Article" className="hover:scale-110 transition-transform">
+                      <FileText className="h-4 w-4 text-white hover:text-[#38bdf8] transition-colors cursor-pointer" />
+                    </a>
+                  )
+                }
+                if (r.type === "VIDEO" && r.url) {
+                  return (
+                    <a key={index} href={r.url} target="_blank" rel="noopener noreferrer" title="Watch Video" className="hover:scale-110 transition-transform">
+                      <PlayCircle className="h-4 w-4 text-white hover:text-[#38bdf8] transition-colors cursor-pointer" />
+                    </a>
+                  )
+                }
+                return null
+              })}
+
+              {/* Chat Icon */}
+              <button onClick={handleChatJump} title={`Chat about ${node.title}`} className="hover:scale-110 transition-transform">
+                <Bot className="h-4 w-4  text-white hover:text-[#38bdf8] transition-colors" />
+              </button>
+
+            </div>
+
+            {/* -- The Plus Icon -- */}
+            {/* Added 'ml-8' to create a clear separation from the 3 icons */}
+            <button title="Add Note" className="ml-8 hover:scale-110 transition-transform">
+              <Plus className="h-4 w-4 text-white/50 hover:text-white transition-colors" />
+            </button>
+            
           </div>
-
-          {/* Practice */}
-          <span className="text-white/30 group-hover:text-white/60 transition">
-            ---
-          </span>
-
-          {/* Notes */}
-          <button className="text-white/30 hover:text-white transition">
-            <Plus className="h-4 w-4" />
-          </button>
         </div>
       )}
-
       {/* CHILDREN */}
       {open &&
         hasChildren &&

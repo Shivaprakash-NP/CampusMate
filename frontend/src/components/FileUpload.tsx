@@ -115,8 +115,8 @@ export default function FileUpload() {
 
   return (
     // REFINED: p-2 on mobile, p-4 on md screens
-    <div className="min-h-screen bg-[#020617] p-2 md:p-4 font-sans">
-      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
+<div className="min-h-screen text-white bg-gradient-to-b from-[#0f343f] via-[#0b1a22] to-[#0b1220] p-2 md:p-4 font-sans">
+        <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
         
         {/* Navbar Card */}
         <div className="rounded-xl border border-white/10 bg-[#0b1220]">
@@ -129,8 +129,7 @@ export default function FileUpload() {
             {/* Header */}
             <div className="mb-6 md:mb-8 text-center">
               {/* REFINED: Smaller icon box on mobile */}
-              <div className="mx-auto mb-3 md:mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-[#38bdf8]/10 ring-1 ring-[#38bdf8]/20 shadow-[0_0_15px_rgba(56,189,248,0.15)]">
-                <FileUp className="h-6 w-6 md:h-7 md:w-7 text-[#38bdf8]" />
+<div className="mx-auto mb-3 md:mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-transparent ring-1 ring-[#38bdf8]/50 shadow-[0_0_15px_rgba(56,189,248,0.3)] backdrop-blur-sm">                <FileUp className="h-6 w-6 md:h-7 md:w-7 text-[#38bdf8]" />
               </div>
               {/* REFINED: Scaled text sizes */}
               <h1 className="text-balance text-xl md:text-2xl font-bold tracking-tight text-[#ffffff]">
@@ -142,7 +141,7 @@ export default function FileUpload() {
             </div>
 
             {/* Upload Card - REFINED: p-4 on mobile, p-6 on md screens */}
-            <div className="rounded-xl border border-slate-800 bg-[#0B1120] p-4 md:p-6 shadow-2xl shadow-black/50">
+            <div className="rounded-xl border border-white/10 bg-[#0b1220]/60 backdrop-blur-md p-4 md:p-6 shadow-2xl shadow-black/50">
               
               {/* Drop Zone - REFINED: py-10 on mobile to save vertical space */}
               <div
