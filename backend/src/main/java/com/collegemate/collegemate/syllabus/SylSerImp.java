@@ -3,8 +3,6 @@ package com.collegemate.collegemate.syllabus;
 import com.collegemate.collegemate.common.enums.Difficulty;
 import com.collegemate.collegemate.common.enums.Types;
 import com.collegemate.collegemate.resource.Resources;
-import com.collegemate.collegemate.syllabus.Syllabus;
-import com.collegemate.collegemate.syllabus.SyllabusRepo;
 import com.collegemate.collegemate.syllabus.dto.SyllabusDashboardDto;
 import com.collegemate.collegemate.syllabus.dto.SyllabusResponseDto;
 import com.collegemate.collegemate.syllabus.dto.TopicResponseDto;
@@ -12,7 +10,6 @@ import com.collegemate.collegemate.topic.Topic;
 import com.collegemate.collegemate.topic.TopicRepository;
 import com.collegemate.collegemate.user.UserRepository;
 import com.collegemate.collegemate.user.Users;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -69,17 +66,15 @@ public class SylSerImp implements SylService {
 
         String prompt = """
             You are an expert curriculum parser and educational curator. Extract the main subject name, along with all topics and subtopics from the following syllabus.
-            
-            CRITICAL URL INSTRUCTIONS:
-            1. For the "url" field, you MUST provide direct, specific, and real links to actual tutorials, videos, or documentation.
-            2. DO NOT output search query URLs (e.g., no youtube.com/results?search_query=...).
-            3. For VIDEO types, provide a specific, well-known YouTube watch URL (e.g., https://www.youtube.com/watch?v=...).
-            4. For ARTICLE types, provide specific URLs from highly reputable educational sites (e.g., GeeksforGeeks, Tutorialspoint, Baeldung, official documentation).
-            5. AVOID HALLUCINATION: Only provide URLs you are extremely confident actually exist. Do not guess or invent URL paths.
-            
+
+            CRITICAL RESOURCE INSTRUCTIONS:
+            1. You must provide specific, direct, and real URLs for the resources. DO NOT output general search queries.
+            2. For VIDEO types, provide a specific YouTube watch URL format: 'https://www.youtube.com/watch?v=[video_id]'. Choose highly popular, fundamental videos for the topic.
+            3. For ARTICLE types, provide specific URLs ONLY from reputable sites like geeksforgeeks.org, tutorialspoint.com, or javatpoint.com.
+            4. ZERO HALLUCINATION: If you are not 100% confident a specific URL exists, provide the closest valid root URL for the topic rather than guessing a fake path.
+
             You must respond ONLY with a valid JSON array matching the exact structure below. Do not include markdown formatting like ```json.
-            Ensure the "type" field is strictly either "ARTICLE" or "VIDEO".
-            
+
             Structure:
             {
               "syllabusTitle": "Extracted Subject Name (e.g. Operating Systems)",
@@ -93,12 +88,12 @@ public class SylSerImp implements SylService {
                         {
                           "type": "VIDEO",
                           "title": "Detailed Video on [Subtopic Name]",
-                          "url": "https://www.youtube.com/watch?v=specific_video_id"
+                          "url": "[https://www.youtube.com/watch?v=specific_video_id](https://www.youtube.com/watch?v=specific_video_id)"
                         },
                         {
                           "type": "ARTICLE",
                           "title": "Comprehensive Guide on [Subtopic Name]",
-                          "url": "https://www.geeksforgeeks.org/specific-article-slug/"
+                          "url": "[https://www.geeksforgeeks.org/specific-article-slug/](https://www.geeksforgeeks.org/specific-article-slug/)"
                         }
                       ]
                     }
@@ -106,7 +101,7 @@ public class SylSerImp implements SylService {
                 }
               ]
             }
-            
+
             Syllabus Text:
             """ + syllabusText;
 

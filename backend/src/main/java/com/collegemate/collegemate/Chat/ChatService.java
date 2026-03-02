@@ -20,6 +20,7 @@ import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.retry.support.RetryTemplate;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.beans.factory.ObjectProvider;
+import reactor.core.publisher.Hooks;
 
 @Service
 public class ChatService {
@@ -52,6 +53,15 @@ public class ChatService {
         this.topicRepository = topicRepository;
         this.syllabusRepo = syllabusRepo;
         this.chatMemory = MessageWindowChatMemory.builder().maxMessages(10).build();
+
+        Hooks.onErrorDropped(e -> {
+            if (e.getMessage() != null && e.getMessage().contains("Failed to read next JSON")) {
+                // The frontend gracefully disconnected. Do nothing.
+            } else {
+                // If it's a real background error, print it
+                System.err.println("Dropped Error: " + e.getMessage());
+            }
+        });
     }
 
     public Flux<String> chat(ChatDto chatReq) {
