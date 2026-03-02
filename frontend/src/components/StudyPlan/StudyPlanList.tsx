@@ -159,7 +159,7 @@ export default function StudyPlans() {
               plans.map((plan) => (
                 <div 
                   key={plan.id} 
-                  className="group flex flex-col md:flex-row md:items-center justify-between gap-4 py-5 transition-colors hover:bg-white/[0.02]"
+                  className="group flex flex-col md:flex-row md:items-center justify-between gap-4 py-3 transition-colors hover:bg-white/[0.02]"
                 >
                   
                   {/* Title & Description */}
@@ -266,7 +266,7 @@ export default function StudyPlans() {
                 disabled={!newPlanName.trim()}
                 className="h-9 bg-white hover:bg-white/90 text-[#0b1220] font-semibold"
               >
-                Create Roadmap
+                Create Plan
               </Button>
             </DialogFooter>
           </form>

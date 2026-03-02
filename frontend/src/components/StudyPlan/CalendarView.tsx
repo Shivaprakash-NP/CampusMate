@@ -153,33 +153,47 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
 
   return (
     <>
-      <div className="mx-auto flex h-[550px] bg-[#0b1220] border border-slate-800 rounded-xl overflow-hidden relative shadow-2xl">
-        <div className={`flex-1 flex flex-col p-4 transition-all duration-300 ${isSidebarOpen ? 'pr-4 border-r border-slate-800' : ''}`}>
+      {/* ADDED w-full and max-w-6xl so the container has breathing room */}
+      <div className="w-full max-w-6xl mx-auto flex h-[550px] bg-[#0b1220] border border-slate-800 rounded-xl overflow-hidden relative shadow-2xl">
+        
+        {/* ADDED min-w-0 so the calendar shrinks to make room for the sidebar */}
+        <div className={`flex-1 min-w-0 flex flex-col p-4 transition-all duration-300 ${isSidebarOpen ? 'pr-4 border-r border-slate-800' : ''}`}>
           
           {/* Header Controls */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between mb-4 w-full">
+            
+            {/* LEFT: View Toggles */}
+            <div className="flex-1 flex justify-start gap-2">
               <button onClick={() => setView(Views.MONTH)} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${view === Views.MONTH ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-slate-400 bg-slate-800 hover:bg-slate-700'}`}>Month</button>
               <button onClick={() => setView(Views.WEEK)} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${view === Views.WEEK ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-slate-400 bg-slate-800 hover:bg-slate-700'}`}>Week</button>
             </div>
             
-            <div className="flex items-center gap-4">
-              {/* EDIT SCHEDULE BUTTON */}
+            {/* CENTER: Month & Navigation Arrows */}
+            <div className="flex-1 flex justify-center items-center gap-2">
+              <button onClick={() => setDate(moment(date).subtract(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+                <ChevronLeft size={16}/>
+              </button>
+              
+              <span className="text-sm font-bold tracking-tight text-slate-200 w-32 text-center">
+                {moment(date).format('MMMM YYYY')}
+              </span>
+              
+              <button onClick={() => setDate(moment(date).add(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+                <ChevronRight size={16}/>
+              </button>
+            </div>
+
+            {/* RIGHT: Edit Plan Button */}
+            <div className="flex-1 flex justify-end">
               <button 
                 onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-cyan-400 hover:bg-cyan-400/10 border border-slate-800 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 border border-cyan-400/20 transition-all"
               >
                 <Settings2 className="w-3.5 h-3.5" />
                 Edit Plan
               </button>
-
-              <span className="text-sm font-bold tracking-tight text-slate-200 w-32 text-center">{moment(date).format('MMMM YYYY')}</span>
-              
-              <div className="flex gap-1">
-                <button onClick={() => setDate(moment(date).subtract(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"><ChevronLeft size={16}/></button>
-                <button onClick={() => setDate(moment(date).add(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"><ChevronRight size={16}/></button>
-              </div>
             </div>
+
           </div>
 
           <div className="flex-1 overflow-hidden">
@@ -203,22 +217,26 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
           </div>
         </div>
 
+        {/* SIDEBAR RENDER */}
         {isSidebarOpen && selectedDate && (
-          <TaskSidebar 
-            selectedDate={selectedDate}
-            onClose={() => setIsSidebarOpen(false)}
-            tasksForSelectedDate={currentTasks}
-            topicsForSelectedDate={currentTopics}
-            onToggleTask={(dateKey, taskId) => {
-              setDailyTasks(prev => ({ ...prev, [dateKey]: prev[dateKey].map(t => t.id === taskId ? { ...t, completed: !t.completed } : t) }))
-            }}
-            onAddTask={(e, dateKey, text) => {
-              const newTask = { id: `task-${dateKey}-${Date.now()}`, text, completed: false };
-              setDailyTasks(prev => ({ ...prev, [dateKey]: [...(prev[dateKey] || []), newTask] }));
-            }}
-          />
+          <div className="w-80 shrink-0"> {/* Wrapper to enforce sidebar width */}
+            <TaskSidebar 
+              selectedDate={selectedDate}
+              onClose={() => setIsSidebarOpen(false)}
+              tasksForSelectedDate={currentTasks}
+              topicsForSelectedDate={currentTopics}
+              onToggleTask={(dateKey, taskId) => {
+                setDailyTasks(prev => ({ ...prev, [dateKey]: prev[dateKey].map(t => t.id === taskId ? { ...t, completed: !t.completed } : t) }))
+              }}
+              onAddTask={(e, dateKey, text) => {
+                const newTask = { id: `task-${dateKey}-${Date.now()}`, text, completed: false };
+                setDailyTasks(prev => ({ ...prev, [dateKey]: [...(prev[dateKey] || []), newTask] }));
+              }}
+            />
+          </div>
         )}
         
+        {/* CSS STYLES HIDDEN FOR BREVITY - KEEP YOUR EXISTING STYLES HERE */}
         <style dangerouslySetInnerHTML={{ __html: `
           .rbc-calendar { color: #e2e8f0; font-family: inherit; }
           .rbc-month-view, .rbc-time-view { border: none !important; background: #0b1220 !important; } 
@@ -241,7 +259,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
         ` }} />
       </div>
 
-      {/* RENDER THE DRAG AND DROP MODAL */}
       <EditCalendarModal 
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

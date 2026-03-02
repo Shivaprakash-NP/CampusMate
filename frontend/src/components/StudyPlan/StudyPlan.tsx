@@ -263,8 +263,7 @@ const StudyPlan = () => {
         </div>
         <div className="rounded-xl border border-white/10 bg-[#0b1220] p-6 space-y-6">
           <StudyPlanHeader view={view} setView={setView} />
-          
-          <PlanOverview />
+         
 
           {view === 'text' ? (
             <div className="space-y-6 animate-in fade-in">
