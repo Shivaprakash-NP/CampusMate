@@ -24,7 +24,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class SylSerImp implements SylService {
+public class SylSerImp {
     public final ChatClient chatClient;
     public final SyllabusRepo syllabusRepo;
     public final UserRepository userRepo;
@@ -49,7 +49,7 @@ public class SylSerImp implements SylService {
         }
     }
 
-    public Syllabus generateAndSaveSyllabus(String syllabusText, String syllabusTitle) {
+    public Syllabus generateAndSaveSyllabus(String syllabusText) {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
@@ -88,12 +88,12 @@ public class SylSerImp implements SylService {
                         {
                           "type": "VIDEO",
                           "title": "Detailed Video on [Subtopic Name]",
-                          "url": "[https://www.youtube.com/watch?v=specific_video_id](https://www.youtube.com/watch?v=specific_video_id)"
+                          "url": "https://www.youtube.com/watch?v=specific_video_id"
                         },
                         {
                           "type": "ARTICLE",
                           "title": "Comprehensive Guide on [Subtopic Name]",
-                          "url": "[https://www.geeksforgeeks.org/specific-article-slug/](https://www.geeksforgeeks.org/specific-article-slug/)"
+                          "url": "https://www.geeksforgeeks.org/specific-article-slug/"
                         }
                       ]
                     }
@@ -122,6 +122,8 @@ public class SylSerImp implements SylService {
             syllabus.setTitle(parsedData.getSyllabusTitle());
             syllabus.setUser(currentUser);
             syllabus.setContentHash(getHex);
+
+            int order = 1;
 
             for(TopicResponseDto mainDto : parsedData.getTopics()) {
                 Topic mainTopic = new Topic();
@@ -161,10 +163,13 @@ public class SylSerImp implements SylService {
                                 subTopic.addResource(resource);
                             }
                         }
+                        subTopic.setSequenceOrder(order);
                         mainTopic.addSubTopic(subTopic);
                     }
                 }
+                mainTopic.setSequenceOrder(order);
                 syllabus.getTopics().add(mainTopic);
+                ++order;
             }
 
             return syllabusRepo.save(syllabus);

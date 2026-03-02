@@ -66,7 +66,7 @@ public class SylController {
                 title = "Untitled Syllabus";
             }
 
-            Syllabus savedSyllabus = sylSerImp.generateAndSaveSyllabus(content, title);
+            Syllabus savedSyllabus = sylSerImp.generateAndSaveSyllabus(content);
             return ResponseEntity.ok(savedSyllabus);
 
         } catch (Exception e) {

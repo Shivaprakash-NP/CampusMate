@@ -163,7 +163,7 @@ export default function StudyPlans() {
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
             size="sm"
-            className="h-9 bg-purple-600 hover:bg-purple-700 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] transition-all w-full sm:w-auto"
+            className="h-9 bg-purple-500 hover:bg-purple-700 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] transition-all w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Plan
