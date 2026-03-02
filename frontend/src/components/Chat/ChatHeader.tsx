@@ -10,26 +10,47 @@ type Props = {
 
 export default function ChatHeader({ setIsSidebarOpen, isFullScreen, setIsFullScreen }: Props) {
   return (
-    <div className="flex shrink-0 items-center justify-between px-4 py-3 md:px-6 border-b border-white/10 transition-all duration-500">
-      <div className="flex items-center gap-3">
-        <button className="md:hidden rounded-md p-1.5 text-white/70 hover:bg-white/10" onClick={() => setIsSidebarOpen(true)}>
+    <div className="flex shrink-0 items-center justify-between px-4 py-3 md:px-6 border-b border-zinc-800/60 bg-zinc-950/30 backdrop-blur-md transition-all duration-500 z-10">
+      
+      {/* Left side: Mobile Menu Toggle & Brand */}
+      <div className="flex items-center gap-2 md:gap-3">
+        <button 
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-colors" 
+          onClick={() => setIsSidebarOpen(true)}
+          aria-label="Open sidebar"
+        >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-lg font-medium text-white/90 hover:bg-white/5 transition-colors cursor-default">
-          CampusMate AI 
+        
+        <div className="flex items-center gap-2.5 px-1 py-1.5 cursor-default">
+          {/* Electric Purple AI Indicator */}
+          <span className="flex h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+          <span className="text-sm md:text-base font-semibold tracking-tight text-zinc-100">
+            CampusMate AI
+          </span>
         </div>
       </div>
       
-      <div className="flex items-center gap-3 md:gap-4">
-        <button className="hidden md:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors" title="Share chat">
+      {/* Right side: Action Tools */}
+      <div className="flex items-center gap-2 md:gap-3">
+        <button 
+          className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-all duration-200" 
+          title="Share chat"
+        >
           <Share className="h-4 w-4" />
         </button>
+        
+        {/* Fullscreen Toggle */}
         <button 
           onClick={() => setIsFullScreen(!isFullScreen)}
-          className="hidden md:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+          className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-all duration-200"
           title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
         >
-          {isFullScreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+          {isFullScreen ? (
+            <Minimize className="h-4 w-4" />
+          ) : (
+            <Maximize className="h-4 w-4" />
+          )}
         </button>
       </div>
     </div>
