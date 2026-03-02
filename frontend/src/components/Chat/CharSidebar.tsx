@@ -20,13 +20,13 @@ export default function ChatSidebar({
 
   return (
     <div className={`
-      relative flex h-full shrink-0 flex-col bg-[#14232d] overflow-hidden
-      transition-all duration-500 ease-in-out origin-left
+      relative flex h-full shrink-0 flex-col bg-zinc-950/50 overflow-hidden
+      transition-all duration-500 ease-in-out origin-left z-20
       ${isFullScreen 
         ? "w-0 opacity-0 border-transparent" 
         : isSidebarOpen 
-          ? "w-[260px] opacity-100 border-r border-white/5" 
-          : "w-[68px] opacity-100 border-r border-white/5"
+          ? "w-[260px] opacity-100 border-r border-zinc-800/60" 
+          : "w-[68px] opacity-100 border-r border-zinc-800/60"
       }
     `}>
       {/* MAGIC TRICK: Inner Canvas locked to 260px. 
@@ -38,14 +38,14 @@ export default function ChatSidebar({
         <div className="flex items-center justify-between h-14 px-3">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="text-white/50 transition-colors hover:text-white/90 p-2 rounded-lg hover:bg-white/5 shrink-0"
+            className="text-zinc-400 transition-all duration-200 hover:text-zinc-100 p-2 rounded-lg hover:bg-zinc-800/60 shrink-0"
             aria-label="Toggle Sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
           
           <button 
-            className={`text-white/50 transition-colors hover:text-white/90 p-2 rounded-lg hover:bg-white/5 shrink-0 transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            className={`text-zinc-400 transition-all duration-200 hover:text-zinc-100 p-2 rounded-lg hover:bg-zinc-800/60 shrink-0 ${isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
@@ -58,7 +58,8 @@ export default function ChatSidebar({
           <button 
             onClick={onNewChat} 
             title={!isSidebarOpen ? "New chat" : undefined}
-            className={`flex w-full items-center gap-3 px-3 py-2 text-sm rounded-lg text-white/90 transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap hover:bg-white/5
+            className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm rounded-lg font-medium transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap
+              bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 hover:text-purple-300
               ${isSidebarOpen ? "max-w-[260px]" : "max-w-[44px]"}
             `}
           >
@@ -70,31 +71,34 @@ export default function ChatSidebar({
         </div>
 
         {/* Syllabus Contexts */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 mt-2">
-          <div className={`mb-3 px-2 text-xs font-semibold text-white/40 whitespace-nowrap transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0"}`}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-6">
+          <div className={`mb-3 px-3 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase whitespace-nowrap transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0"}`}>
             Syllabus Contexts
           </div>
           
-          <div className="flex flex-col gap-1">
-            {subjects.map((subject) => (
-              <button
-                key={subject.id}
-                onClick={() => onSelectSubject(subject)}
-                title={!isSidebarOpen ? subject.title : undefined}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap
-                  ${isSidebarOpen ? "max-w-[260px]" : "max-w-[44px]"}
-                  ${activeSubject?.id === subject.id 
-                    ? "bg-white/10 text-white font-medium" 
-                    : "text-white/70 hover:bg-white/5 hover:text-white"
-                  }
-                `}
-              >
-                <FolderOpen className="h-5 w-5 shrink-0" />
-                <span className={`truncate text-left transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0"}`}>
-                  {subject.title}
-                </span>
-              </button>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            {subjects.map((subject) => {
+              const isActive = activeSubject?.id === subject.id;
+              return (
+                <button
+                  key={subject.id}
+                  onClick={() => onSelectSubject(subject)}
+                  title={!isSidebarOpen ? subject.title : undefined}
+                  className={`group flex w-full items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap border
+                    ${isSidebarOpen ? "max-w-[260px]" : "max-w-[44px]"}
+                    ${isActive 
+                      ? "bg-zinc-800/80 text-zinc-100 font-medium border-zinc-700/50 shadow-sm" 
+                      : "text-zinc-400 border-transparent hover:bg-zinc-800/40 hover:text-zinc-200"
+                    }
+                  `}
+                >
+                  <FolderOpen className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-purple-400" : "text-zinc-500 group-hover:text-zinc-400"}`} />
+                  <span className={`truncate text-left transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0"}`}>
+                    {subject.title}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
         

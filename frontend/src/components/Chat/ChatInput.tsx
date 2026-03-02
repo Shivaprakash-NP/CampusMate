@@ -11,8 +11,9 @@ type Props = {
 export default function ChatInput({ onSendMessage, isLoading, isFullScreen }: Props) {
   const [inputValue, setInputValue] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // FIX: Changed from React.FormEvent to React.SyntheticEvent to accept both form and keyboard events
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
     onSendMessage(inputValue);
     setInputValue("");
@@ -21,7 +22,7 @@ export default function ChatInput({ onSendMessage, isLoading, isFullScreen }: Pr
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmit(e); // This no longer throws a TypeScript error
     }
   };
 
