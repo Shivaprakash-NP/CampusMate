@@ -68,15 +68,21 @@ public class SylSerImp implements SylService {
         }
 
         String prompt = """
-            You are an expert curriculum parser. Extract the main subject name, along with all topics and subtopics from the following syllabus.
+            You are an expert curriculum parser and educational curator. Extract the main subject name, along with all topics and subtopics from the following syllabus.
+            
+            CRITICAL URL INSTRUCTIONS:
+            1. For the "url" field, you MUST provide direct, specific, and real links to actual tutorials, videos, or documentation.
+            2. DO NOT output search query URLs (e.g., no youtube.com/results?search_query=...).
+            3. For VIDEO types, provide a specific, well-known YouTube watch URL (e.g., https://www.youtube.com/watch?v=...).
+            4. For ARTICLE types, provide specific URLs from highly reputable educational sites (e.g., GeeksforGeeks, Tutorialspoint, Baeldung, official documentation).
+            5. AVOID HALLUCINATION: Only provide URLs you are extremely confident actually exist. Do not guess or invent URL paths.
+            
             You must respond ONLY with a valid JSON array matching the exact structure below. Do not include markdown formatting like ```json.
             Ensure the "type" field is strictly either "ARTICLE" or "VIDEO".
             
-            CRITICAL: The "url" field MUST be a raw, plain text URL only. DO NOT wrap the URL in markdown brackets.
-            
             Structure:
             {
-              "syllabusTitle": "Extracted Subject Name (e.g. Operating Systems, HTML & CSS)",
+              "syllabusTitle": "Extracted Subject Name (e.g. Operating Systems)",
               "topics": [
                 {
                   "title": "Main Topic Name",
@@ -86,13 +92,13 @@ public class SylSerImp implements SylService {
                       "resources": [
                         {
                           "type": "VIDEO",
-                          "title": "YouTube Search: [Subtopic Name]",
-                          "url": "https://www.youtube.com/results?search_query=Subtopic+Name"
+                          "title": "Detailed Video on [Subtopic Name]",
+                          "url": "https://www.youtube.com/watch?v=specific_video_id"
                         },
                         {
                           "type": "ARTICLE",
-                          "title": "Read about [Subtopic Name]",
-                          "url": "https://www.google.com/search?q=site:geeksforgeeks.org+Subtopic+Name"
+                          "title": "Comprehensive Guide on [Subtopic Name]",
+                          "url": "https://www.geeksforgeeks.org/specific-article-slug/"
                         }
                       ]
                     }
