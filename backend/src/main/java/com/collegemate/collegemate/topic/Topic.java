@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.collegemate.collegemate.common.enums.Difficulty;
 import com.collegemate.collegemate.resource.Resources;
+import com.collegemate.collegemate.schedule.SchedulePerDay;
 import com.collegemate.collegemate.syllabus.Syllabus;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -61,6 +62,14 @@ public class Topic {
     @JoinColumn(name = "syllabus_id", nullable = false)
     @JsonBackReference("syllabus-topic")    
     private Syllabus syllabus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_day_id") // Creates the foreign key column in your DB
+    @JsonBackReference
+    private SchedulePerDay schedulePerDay;
+
+    @Column(nullable = false)
+    private Integer sequenceOrder;
 
     public void addSubTopic(Topic subTopic) {
         subTopics.add(subTopic);

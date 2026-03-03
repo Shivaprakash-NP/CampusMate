@@ -162,7 +162,9 @@ export default function StudyPlans() {
 
           <Button
             size="sm"
+
             className="h-9 bg-zinc-300 text-zinc-950 hover:bg-zinc-300 font-semibold transition-all"
+
           >
             <Plus className="w-4 h-4 mr-2" />
             New Plan
