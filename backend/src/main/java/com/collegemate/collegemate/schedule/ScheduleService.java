@@ -267,6 +267,8 @@ public class ScheduleService {
                                             rawfallBackURL = rawfallBackURL.substring(rawfallBackURL.indexOf("](")+2, rawfallBackURL.length()-1);
                                         }
 
+                                        resource.setFallbackQueryUrl(rawfallBackURL != null ? rawfallBackURL : "https://www.google.com/search?q=" + resDto.getTitle());
+
                                         boolean isValid = false;
                                         if (rawURL != null) {
                                             if (rawURL.contains("youtube.com") || rawURL.contains("youtu.be")) {
@@ -279,7 +281,7 @@ public class ScheduleService {
                                         if(isValid) {
                                             resource.setUrl(rawURL);
                                         } else {
-                                            resource.setUrl(rawfallBackURL);
+                                            resource.setUrl(rawfallBackURL != null ? rawfallBackURL : "https://www.google.com/search?q=" + resDto.getTitle());
                                         }
 
                                         try {

@@ -131,9 +131,10 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
       })
 
       // 4. Send the request
-      const response = await fetch('http://localhost:8080/api/schedule', {
+      const response = await fetch('http://localhost:8080/api/schedule/generate', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include',
         // CRITICAL: Let the browser set the Content-Type automatically for boundaries
       })
 

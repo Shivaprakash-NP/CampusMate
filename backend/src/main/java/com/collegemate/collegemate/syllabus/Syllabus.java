@@ -31,9 +31,9 @@ public class Syllabus {
     @JsonIgnore
     private Users user;
 
-    @OneToMany(mappedBy = "syllabus", cascade = CascadeType.ALL, orphanRemoval = true)    
-    @JsonManagedReference
-    private List<Topic> topics = new ArrayList<>();
+    @OneToMany(mappedBy = "syllabus", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("syllabus-topic")
+     private List<Topic> topics = new ArrayList<>();
 
     @Column(name = "content_hash")
     @JsonIgnore

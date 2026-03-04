@@ -12,7 +12,7 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
 
     @PostMapping("/generate")
-    public ResponseEntity<?> generateSchedule(@RequestBody ScheduleGenerateRequest scheduleGenerateRequest) {
+    public ResponseEntity<?> generateSchedule(@ModelAttribute ScheduleGenerateRequest scheduleGenerateRequest) {
         try {
             if(scheduleGenerateRequest.getStartDate().isAfter(scheduleGenerateRequest.getEndDate())) {
                 return ResponseEntity.badRequest().body("Start date must be before end date.");
