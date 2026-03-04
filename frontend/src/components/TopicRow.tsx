@@ -163,14 +163,14 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
                 if (r.type === "ARTICLE" && r.url) {
                   return (
                     <a key={index} href={r.url} target="_blank" rel="noopener noreferrer" title="Read Article" className="hover:scale-110 transition-transform">
-                      <FileText className="h-4 w-4 text-zinc-500 hover:text-purple-400 transition-colors cursor-pointer" />
+                      <FileText className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
                     </a>
                   )
                 }
                 if (r.type === "VIDEO" && r.url) {
                   return (
                     <a key={index} href={r.url} target="_blank" rel="noopener noreferrer" title="Watch Video" className="hover:scale-110 transition-transform">
-                      <PlayCircle className="h-4 w-4 text-zinc-500 hover:text-purple-400 transition-colors cursor-pointer" />
+                      <PlayCircle className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
                     </a>
                   )
                 }
@@ -178,7 +178,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
               })}
 
               <button onClick={handleChatJump} title={`Chat about ${node.title}`} className="hover:scale-110 transition-transform">
-                <Bot className="h-4 w-4 text-zinc-500 hover:text-purple-400 transition-colors" />
+                <Bot className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors" />
               </button>
             </div>
 
