@@ -252,7 +252,8 @@ export default function FileUpload() {
             </div>
 
             <p className="mt-3 md:mt-4 text-center text-[10px] md:text-xs text-slate-500">
-              Files are processed securely and stored for your study sessions.
+              Files are processed securely and stored for your study sessions
+              
             </p>
           </div>
         </div>
