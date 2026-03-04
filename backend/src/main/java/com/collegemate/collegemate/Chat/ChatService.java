@@ -21,6 +21,8 @@ import org.springframework.retry.support.RetryTemplate;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.stream.Collectors;
+
 @Service
 public class ChatService {
     private final ChatClient chatClient;
@@ -63,10 +65,16 @@ public class ChatService {
 
             if (chatReq.getTopicId() != null) {
                 Topic topic = topicRepository.findById(chatReq.getTopicId()).orElseThrow(() -> new RuntimeException("Topic Not Found"));
-                Sysprompt.append("This user is currently studying a specific topic called '").append(topic.getTitle()).append("'. Answer their question strictly in the context of this topic.");
+                Sysprompt.append("This user is currently studying a specific topic called '")
+                        .append(topic.getTitle())
+                        .append("'. Answer their question strictly in the context of this topic.");
             } else if (chatReq.getSyllabusId() != null) {
                 Syllabus syllabus = syllabusRepo.findById(chatReq.getSyllabusId()).orElseThrow(() -> new RuntimeException("Syllabus Not Found"));
-                Sysprompt.append("The user is asking a general question about their course titled '").append(syllabus.getTitle()).append("'. Provide a helpful, broad answer related to this subject.");
+                Sysprompt.append("The user is asking a general question about their course titled '")
+                        .append(syllabus.getTitle())
+                        .append("'. Having SubTopics as '")
+                        .append(syllabus.getTopics().stream().map(Topic :: getTitle).collect(Collectors.joining(" ")))
+                        .append("'. Provide a helpful, broad answer related to this subject.");
             }
 
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
