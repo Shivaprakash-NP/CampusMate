@@ -21,13 +21,13 @@ public class SchedulePerDay {
 
     @ManyToOne
     @JoinColumn(name = "schedule_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference("schedule-day")
     private Schedule schedule;
 
     @Column
     private LocalDate date;
 
     @OneToMany(mappedBy = "schedulePerDay", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("day-topic")
     private List<Topic> topics = new ArrayList<>();
 }

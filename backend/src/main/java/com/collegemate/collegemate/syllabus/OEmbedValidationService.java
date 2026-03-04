@@ -9,6 +9,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+
 @Service
 @RequiredArgsConstructor
 public class OEmbedValidationService {
@@ -16,20 +18,19 @@ public class OEmbedValidationService {
 
     public boolean isUrlValid(String providerEndpoint, String targetUrl) {
         try {
-            String requestUri = UriComponentsBuilder.fromHttpUrl(providerEndpoint)
+            URI requestUri = UriComponentsBuilder.fromHttpUrl(providerEndpoint)
                     .queryParam("url", targetUrl)
                     .queryParam("format", "json")
-                    .toUriString();
+                    .build()
+                    .toUri();
 
             ResponseEntity<String> response = restTemplate.getForEntity(requestUri, String.class);
 
             return response.getStatusCode() == HttpStatus.OK;
-
         } catch (HttpClientErrorException e) {
-            System.err.println("URL is invalid or inaccessible. Status: " + e.getStatusCode());
+            System.err.println("YouTube URL is invalid or inaccessible. Status: " + e.getStatusCode());
             return false;
         } catch (Exception e) {
-            System.err.println("Error communicating with oEmbed provider: " + e.getMessage());
             return false;
         }
     }

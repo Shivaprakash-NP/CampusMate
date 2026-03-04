@@ -38,14 +38,10 @@ public class Resources {
     @Column(nullable = false)
     private String title; 
 
-    @Column(nullable = false)
-    @NotBlank
-    @URL
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String url;
 
-    @Column(nullable = false)
-    @NotBlank
-    @URL
+    @Column(columnDefinition = "TEXT")
     private String fallbackQueryUrl;
 
     @ManyToOne

@@ -64,8 +64,8 @@ public class Topic {
     private Syllabus syllabus;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_day_id") // Creates the foreign key column in your DB
-    @JsonBackReference
+    @JoinColumn(name = "schedule_day_id")
+    @JsonBackReference("day-topic")
     private SchedulePerDay schedulePerDay;
 
     @Column(nullable = false)

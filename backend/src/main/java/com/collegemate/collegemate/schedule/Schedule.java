@@ -29,7 +29,7 @@ public class Schedule {
     private LocalDate endDate;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL,  orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("schedule-day")
     private List<SchedulePerDay> schedulePerDayList = new ArrayList<>();
 
     @ManyToOne
