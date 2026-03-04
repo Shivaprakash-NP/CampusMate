@@ -29,7 +29,7 @@ interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  resource: any; 
+  resource: any;
   allDay?: boolean;
 }
 
@@ -67,50 +67,60 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
     onClose()
   }
 
-  // Semantic styling logic
+  // Semantic styling logic mapped to premium Zinc/Purple/Emerald theme
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || ''
-    let color = '#cbd5e1' 
-    let bg = 'rgba(203, 213, 225, 0.05)'
+
+    // Default muted zinc style
+    let color = '#a1a1aa' // zinc-400
+    let bg = 'rgba(161, 161, 170, 0.1)'
+    let borderColor = 'rgba(161, 161, 170, 0.2)'
 
     if (subject.includes('exam') || subject.includes('os') || subject.includes('operating')) {
-      color = '#a855f7'
+      color = '#c084fc' // purple-400
       bg = 'rgba(168, 85, 247, 0.1)'
+      borderColor = 'rgba(168, 85, 247, 0.2)'
     } else if (subject.includes('dbms') || subject.includes('web')) {
-      color = '#22d3ee'
-      bg = 'rgba(34, 211, 238, 0.1)'
+      color = '#34d399' // emerald-400
+      bg = 'rgba(16, 185, 129, 0.1)'
+      borderColor = 'rgba(16, 185, 129, 0.2)'
     }
-    
+
     return {
       style: {
         backgroundColor: bg,
-        borderLeft: `2px solid ${color}`,
+        border: `1px solid ${borderColor}`,
+        borderLeft: `3px solid ${color}`,
         color: color,
-        fontSize: '0.6rem',
-        fontWeight: '600',
-        borderRadius: '2px',
+        fontSize: '0.65rem',
+        fontWeight: '500',
+        borderRadius: '6px',
         padding: '2px 6px',
-        cursor: 'grab', 
+        margin: '2px 4px',
+        cursor: 'grab',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
       },
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[1000px] bg-[#0b1220]/95 backdrop-blur-xl border-slate-800 text-slate-200 shadow-2xl p-6">
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-800/60 pb-4">
-          <div className="space-y-1">
-            <DialogTitle className="text-xl font-semibold tracking-tight text-white flex items-center gap-2">
-              <GripHorizontal className="w-5 h-5 text-cyan-400" />
+      <DialogContent className="sm:max-w-[1000px] w-[95vw] bg-zinc-950/95 backdrop-blur-xl border-zinc-800/60 text-zinc-200 shadow-2xl p-4 sm:p-6 rounded-2xl">
+        <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-zinc-800/60 pb-4 gap-4">
+          <div className="space-y-1.5">
+            <DialogTitle className="text-xl font-semibold tracking-tight text-zinc-100 flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm">
+                <GripHorizontal className="w-4 h-4 text-zinc-400" />
+              </div>
               Reschedule Plan
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-[13px] text-zinc-400">
               Drag and drop topics to different days. Click apply to save your new schedule.
             </DialogDescription>
           </div>
         </DialogHeader>
 
-        <div className="h-[400px] mt-4 bg-[#0b1220] border border-slate-800 rounded-lg overflow-hidden">
+        <div className="h-[60vh] min-h-[400px] mt-5 bg-zinc-950/50 border border-zinc-800/40 rounded-xl overflow-hidden shadow-inner">
           {/* @ts-ignore - Bypassing strictly broken React Big Calendar Overloads */}
           <DnDCalendar
             localizer={localizer}
@@ -121,44 +131,53 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
             defaultView="month"
             views={["month"]}
             onEventDrop={onEventDrop}
-            resizable={false} 
+            resizable={false}
             eventPropGetter={eventPropGetter}
-            toolbar={true} 
+            toolbar={true}
             className="dnd-calendar-custom"
           />
         </div>
 
-        <DialogFooter className="pt-4 border-t border-slate-800/60 mt-2">
-          <Button variant="ghost" onClick={onClose} className="h-9 text-slate-400 hover:text-white hover:bg-white/5">
+        <DialogFooter className="pt-5 border-t border-zinc-800/60 mt-2 gap-3 sm:gap-0 flex-col sm:flex-row">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="h-10 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 w-full sm:w-auto font-medium"
+          >
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
-          <Button 
-            onClick={handleApply} 
+          <Button
+            onClick={handleApply}
             disabled={!hasChanges}
-            className="h-9 bg-white hover:bg-slate-200 text-slate-900 font-semibold transition-all disabled:opacity-50"
+            className="h-10 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold transition-all disabled:opacity-50 disabled:hover:bg-zinc-100 w-full sm:w-auto shadow-sm"
           >
             <Check className="w-4 h-4 mr-2" />
             Apply Changes
           </Button>
         </DialogFooter>
 
-        <style dangerouslySetInnerHTML={{ __html: `
-          .dnd-calendar-custom .rbc-calendar { color: #e2e8f0; font-family: inherit; font-size: 0.8rem; }
+        {/* CSS STYLES FOR REACT-BIG-CALENDAR */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          .dnd-calendar-custom .rbc-calendar { color: #f4f4f5; font-family: inherit; font-size: 0.8rem; }
           .dnd-calendar-custom .rbc-month-view { border: none !important; background: transparent; }
-          .dnd-calendar-custom .rbc-header { border-bottom: 1px solid #1e293b !important; padding: 8px 0 !important; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; border-left: none !important; color: #94a3b8; }
-          .dnd-calendar-custom .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1e293b !important; }
-          .dnd-calendar-custom .rbc-month-row + .rbc-month-row { border-top: 1px solid #1e293b !important; }
+          .dnd-calendar-custom .rbc-header { border-bottom: 1px solid rgba(39, 39, 42, 0.6) !important; padding: 10px 0 !important; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; border-left: none !important; color: #a1a1aa; font-weight: 600; }
+          .dnd-calendar-custom .rbc-day-bg + .rbc-day-bg { border-left: 1px solid rgba(39, 39, 42, 0.4) !important; }
+          .dnd-calendar-custom .rbc-month-row + .rbc-month-row { border-top: 1px solid rgba(39, 39, 42, 0.4) !important; }
           .dnd-calendar-custom .rbc-off-range-bg { background: transparent !important; }
-          .dnd-calendar-custom .rbc-off-range { color: #64748b !important; } 
-          .dnd-calendar-custom .rbc-today { background: rgba(34, 211, 238, 0.03) !important; }
-          .dnd-calendar-custom .rbc-date-cell { padding-right: 6px; padding-top: 4px; font-size: 0.7rem; color: #e2e8f0; }
-          .dnd-calendar-custom .rbc-now .rbc-date-cell { color: #22d3ee !important; font-weight: bold; }
-          .dnd-calendar-custom .rbc-toolbar { padding: 10px; border-bottom: 1px solid #1e293b; margin-bottom: 0; }
-          .dnd-calendar-custom .rbc-toolbar button { color: #94a3b8; border-color: #1e293b; font-size: 0.75rem; }
-          .dnd-calendar-custom .rbc-toolbar button.rbc-active { background-color: #1e293b; color: white; }
+          .dnd-calendar-custom .rbc-off-range { color: #52525b !important; } 
+          .dnd-calendar-custom .rbc-today { background: rgba(255, 255, 255, 0.02) !important; }
+          .dnd-calendar-custom .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #d4d4d8; font-weight: 500; }
+          .dnd-calendar-custom .rbc-now .rbc-date-cell { color: #c084fc !important; font-weight: 700; }
+          .dnd-calendar-custom .rbc-toolbar { padding: 12px 16px; border-bottom: 1px solid rgba(39, 39, 42, 0.6); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
+          .dnd-calendar-custom .rbc-toolbar button { color: #a1a1aa; border: 1px solid rgba(39, 39, 42, 0.8); font-size: 0.75rem; padding: 4px 12px; border-radius: 6px; transition: all 0.2s; background: rgba(24, 24, 27, 0.5); font-weight: 500; }
+          .dnd-calendar-custom .rbc-toolbar button:hover { color: #f4f4f5; background: rgba(39, 39, 42, 0.8); }
+          .dnd-calendar-custom .rbc-toolbar button.rbc-active { background-color: rgba(39, 39, 42, 0.9); color: #f4f4f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); border-color: rgba(82, 82, 91, 0.5); }
+          .dnd-calendar-custom .rbc-toolbar .rbc-toolbar-label { font-weight: 600; color: #f4f4f5; letter-spacing: -0.01em; }
           .rbc-addons-dnd .rbc-addons-dnd-resizable { cursor: grab; }
-          .rbc-addons-dnd-drag-preview { opacity: 0.6; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); border: 1px solid #22d3ee !important; }
+          .rbc-addons-dnd-drag-preview { opacity: 0.8; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4)); border: 1px solid rgba(168, 85, 247, 0.5) !important; border-radius: 6px !important; }
+          .rbc-event { padding: 0 !important; background-color: transparent !important; }
         `}} />
       </DialogContent>
     </Dialog>

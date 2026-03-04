@@ -121,7 +121,7 @@ export default function StudyPlans() {
     }
     if (status === 'active') {
       return (
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#818cf8]">
           Active
         </span>
       )
@@ -134,8 +134,8 @@ export default function StudyPlans() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-purple-500/30 text-zinc-100 flex flex-col">
-      
+    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-cyan-500/30 text-zinc-100 flex flex-col">
+
       {/* Sticky Navbar Wrapper */}
       <div className="sticky top-0 z-40 w-full">
         <Navbar />
@@ -143,9 +143,9 @@ export default function StudyPlans() {
 
       {/* Main Content Layout */}
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
-        
+
         {/* Header Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
@@ -159,11 +159,12 @@ export default function StudyPlans() {
               Manage your generated study tracks and roadmaps.
             </p>
           </div>
-          
-          <Button 
-            onClick={() => setIsCreateModalOpen(true)}
+
+          <Button
             size="sm"
-            className="h-9 bg-purple-500 hover:bg-purple-700 text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] transition-all w-full sm:w-auto"
+
+            className="h-9 bg-zinc-300 text-zinc-950 hover:bg-zinc-300 font-semibold transition-all"
+
           >
             <Plus className="w-4 h-4 mr-2" />
             New Plan
@@ -171,7 +172,7 @@ export default function StudyPlans() {
         </motion.div>
 
         {/* Minimalist Flat List Wrapped in Subtle Container */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
@@ -198,22 +199,22 @@ export default function StudyPlans() {
                 </p>
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
                 className="flex flex-col divide-y divide-zinc-800/50"
               >
                 {plans.map((plan) => (
-                  <motion.div 
+                  <motion.div
                     variants={itemVariants}
-                    key={plan.id} 
+                    key={plan.id}
                     className="group flex flex-col md:grid md:grid-cols-[1fr_120px_100px_160px_40px] md:items-center gap-4 md:gap-6 py-4 px-4 md:px-5 transition-colors duration-200 hover:bg-zinc-800/40"
                   >
-                    
+
                     {/* Title & Description */}
                     <div className="flex min-w-0 flex-col gap-1">
-                      <h3 className="text-sm font-medium text-zinc-200 tracking-tight group-hover:text-purple-400 transition-colors cursor-pointer truncate">
+                      <h3 className="text-sm font-medium text-zinc-200 tracking-tight group-hover:text-cyan-400 transition-colors cursor-pointer truncate">
                         {plan.title}
                       </h3>
                       <p className="text-[13px] text-zinc-500 truncate">
@@ -226,7 +227,7 @@ export default function StudyPlans() {
                       <Calendar className="h-3.5 w-3.5 text-zinc-600 md:hidden" />
                       <span>{plan.targetDate}</span>
                     </div>
-                    
+
                     {/* Status Indicator */}
                     <div className="flex items-center">
                       <StatusIndicator status={plan.status} />
@@ -235,8 +236,8 @@ export default function StudyPlans() {
                     {/* Progress Bar */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-purple-500'}`}
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 bg-zinc-100`}
                           style={{ width: `${plan.progress}%` }}
                         />
                       </div>
@@ -259,7 +260,7 @@ export default function StudyPlans() {
                             <span>Edit plan</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-zinc-800" />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleDelete(plan.id)}
                             className="cursor-pointer text-sm font-medium text-red-400 focus:bg-red-950/50 focus:text-red-300 transition-colors"
                           >
@@ -297,7 +298,7 @@ export default function StudyPlans() {
               Name your roadmap to begin generating your schedule.
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleCreateNew} className="space-y-6 pt-4">
             <div className="space-y-2.5">
               <Label htmlFor="name" className="text-[13px] font-medium text-zinc-300">
@@ -308,24 +309,24 @@ export default function StudyPlans() {
                 placeholder="e.g. System Design Interview..."
                 value={newPlanName}
                 onChange={(e) => setNewPlanName(e.target.value)}
-                className="h-10 bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-purple-500 focus-visible:border-purple-500 transition-all rounded-lg"
+                className="h-10 bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-indigo-400 focus-visible:border-cyan-500 transition-all rounded-lg"
                 autoFocus
               />
             </div>
-            
+
             <DialogFooter className="gap-3 sm:gap-0 pt-2">
-              <Button 
-                type="button" 
-                variant="ghost" 
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setIsCreateModalOpen(false)}
                 className="h-10 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 font-medium rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={!newPlanName.trim()}
-                className="h-10 bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-all rounded-lg disabled:opacity-50 disabled:bg-purple-600"
+                className="h-10 bg-cyan-500 hover:bg-cyan-600 text-white shadow-sm transition-all rounded-lg disabled:opacity-50 disabled:bg-cyan-600"
               >
                 Create Plan
               </Button>

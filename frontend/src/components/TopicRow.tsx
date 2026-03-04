@@ -38,7 +38,7 @@ export function getProgress(node: TopicNode): {
 
 const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
   const navigate = useNavigate();
-  
+
   const isLeaf = !node.children || node.children.length === 0
   const hasChildren = !isLeaf
 
@@ -64,7 +64,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
 
   // --- HANDLERS UNTOUCHED ---
   const handleChatJump = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     const chatUrl = `/chat?topicId=${node.id}&topicTitle=${encodeURIComponent(node.title)}`;
     navigate(chatUrl);
   };
@@ -109,8 +109,8 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
           <div className="flex items-center gap-4 min-w-[140px] justify-end">
             {/* Custom Tailwind Progress Bar replacing MUI */}
             <div className="w-[80px] sm:w-[100px] h-1.5 rounded-full bg-zinc-800/80 overflow-hidden shadow-inner">
-              <div 
-                className="h-full bg-purple-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(168,85,247,0.4)]"
+              <div
+                className="h-full bg-cyan-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(168,85,247,0.4)]"
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -141,17 +141,16 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
               type="checkbox"
               checked={node.completed}
               onChange={(e) => toggleCompleted(node.id, e)}
-              className="h-4 w-4 accent-purple-500 cursor-pointer rounded-sm border-zinc-700 bg-zinc-900/50 focus:ring-purple-500/30 focus:ring-offset-0 transition-all hover:scale-110"
+              className="h-4 w-4 accent-cyan-500 cursor-pointer rounded-sm border-zinc-700 bg-zinc-900/50 focus:ring-purple-500/30 focus:ring-offset-0 transition-all hover:scale-110"
             />
           </div>
 
           {/* Title */}
           <span
-            className={`truncate text-sm tracking-tight transition-all duration-300 ${
-              node.completed 
-                ? "text-zinc-500 line-through decoration-zinc-700/50" 
-                : "text-zinc-200"
-            }`}
+            className={`truncate text-sm tracking-tight transition-all duration-300 ${node.completed
+              ? "text-zinc-500 line-through decoration-zinc-700/50"
+              : "text-zinc-200"
+              }`}
             title={node.title}
           >
             {node.title}

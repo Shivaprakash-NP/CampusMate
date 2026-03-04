@@ -4,8 +4,8 @@ import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react'
 import type { ExamStudyPlan } from '@/shared/generated-plan'
-import { TaskSidebar, type Task } from './TaskSIdebar' // Fixed capital 'I' typo in path if needed
-import { EditCalendarModal } from './EditCalendarModel' // Ensure file name matches
+import { TaskSidebar, type Task } from './TaskSIdebar'
+import { EditCalendarModal } from './EditCalendarModel'
 
 const localizer = momentLocalizer(moment)
 
@@ -14,7 +14,7 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  resource: any; 
+  resource: any;
   allDay?: boolean;
 }
 
@@ -24,11 +24,11 @@ interface CalendarViewProps {
 
 const CalendarView = ({ planData }: CalendarViewProps) => {
   const [view, setView] = useState<View>(Views.MONTH)
-  const [date, setDate] = useState(new Date(2026, 2, 5)) 
+  const [date, setDate] = useState(new Date(2026, 2, 5))
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [dailyTasks, setDailyTasks] = useState<Record<string, Task[]>>({})
-  
+
   // DND States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentPlanData, setCurrentPlanData] = useState<ExamStudyPlan>(planData)
@@ -56,7 +56,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
         const durationMinutes = topic.estimated_hours * 60
         const endTime = moment(currentStartTime).add(durationMinutes, 'minutes')
         calendarEvents.push({
-          id: `${dayPlan.day}-${topic.topic}-${index}`, 
+          id: `${dayPlan.day}-${topic.topic}-${index}`,
           title: `${topic.subject}: ${topic.topic}`,
           start: currentStartTime.toDate(),
           end: endTime.toDate(),
@@ -72,7 +72,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
   // --- RECONSTRUCT PLAN AFTER DRAG AND DROP ---
   const handleApplyScheduleChanges = (modifiedEvents: CalendarEvent[]) => {
     const topicsByDate: Record<string, any[]> = {};
-    
+
     // Group dragged topics by their new dates
     modifiedEvents.forEach(event => {
       const newDateKey = moment(event.start).format('YYYY-MM-DD');
@@ -86,21 +86,21 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     const updatedPlanArray = Object.keys(topicsByDate).map((dateStr, index) => {
       const existingDay = currentPlanData.plan.find(p => p.date === dateStr);
       const computedFocus = topicsByDate[dateStr][0]?.subject || "Custom Focus";
-      
+
       if (existingDay) {
         return {
           ...existingDay,
-          focus: (existingDay as any).focus || computedFocus, // Safely ensure focus exists
-          topics: topicsByDate[dateStr], 
+          focus: (existingDay as any).focus || computedFocus,
+          topics: topicsByDate[dateStr],
         };
       } else {
         // Fallback for brand new date
         return {
           day: currentPlanData.plan.length + index + 1,
           date: dateStr,
-          focus: computedFocus, 
+          focus: computedFocus,
           topics: topicsByDate[dateStr],
-          tasks: [], 
+          tasks: [],
         };
       }
     });
@@ -108,40 +108,54 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     // Sort chronologically
     updatedPlanArray.sort((a, b) => moment(a.date).valueOf() - moment(b.date).valueOf());
 
-    // FIX: Typecast updatedPlanArray to bypass overly strict schema inferences
     setCurrentPlanData(prev => ({
       ...prev,
       plan: updatedPlanArray as typeof prev.plan
     }));
   }
 
-  // Semantic Coloring
+  // Semantic Coloring mapped to Premium SaaS Theme (Zinc + Purple/Emerald)
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || '';
-    let color = '#cbd5e1'; 
-    let bg = 'rgba(203, 213, 225, 0.05)';
+    let color = '#a1a1aa'; // zinc-400
+    let bg = 'rgba(161, 161, 170, 0.1)';
+    let borderColor = 'rgba(161, 161, 170, 0.2)';
+
     if (subject.includes('exam') || subject.includes('os') || subject.includes('operating')) {
-      color = '#a855f7'; bg = 'rgba(168, 85, 247, 0.1)';
+      color = '#c084fc'; // purple-400
+      bg = 'rgba(168, 85, 247, 0.1)';
+      borderColor = 'rgba(168, 85, 247, 0.2)';
     } else if (subject.includes('dbms') || subject.includes('web')) {
-      color = '#22d3ee'; bg = 'rgba(34, 211, 238, 0.1)';
+      color = '#34d399'; // emerald-400
+      bg = 'rgba(16, 185, 129, 0.1)';
+      borderColor = 'rgba(16, 185, 129, 0.2)';
     }
+
     return {
       style: {
-        backgroundColor: bg, borderLeft: `2px solid ${color}`, color: color,
-        fontSize: '0.65rem', fontWeight: '600', borderRadius: '2px', padding: '2px 6px', margin: '1px 4px',
+        backgroundColor: bg,
+        border: `1px solid ${borderColor}`,
+        borderLeft: `3px solid ${color}`,
+        color: color,
+        fontSize: '0.65rem',
+        fontWeight: '500',
+        borderRadius: '6px',
+        padding: '2px 6px',
+        margin: '2px 4px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
       },
     }
   }
 
   const dayPropGetter = (currentDate: Date) => {
-    const isToday = moment(currentDate).isSame(moment(), 'day'); 
+    const isToday = moment(currentDate).isSame(moment(), 'day');
     const isSelected = selectedDate && moment(currentDate).isSame(selectedDate, 'day');
 
     if (isToday) {
-      return { style: { backgroundColor: 'rgba(34, 211, 238, 0.05)', boxShadow: isSelected ? 'inset 0 0 0 1px #22d3ee' : 'inset 0 0 0 1px rgba(34, 211, 238, 0.2)' } };
+      return { style: { backgroundColor: 'rgba(168, 85, 247, 0.03)', boxShadow: isSelected ? 'inset 0 0 0 1px #a855f7' : 'inset 0 0 0 1px rgba(168, 85, 247, 0.2)' } };
     }
     if (isSelected) {
-      return { style: { backgroundColor: 'rgba(255, 255, 255, 0.02)', boxShadow: 'inset 0 0 0 1px rgba(34, 211, 238, 0.15)' } };
+      return { style: { backgroundColor: 'rgba(255, 255, 255, 0.02)', boxShadow: 'inset 0 0 0 1px rgba(168, 85, 247, 0.4)' } };
     }
     return {}
   }
@@ -153,50 +167,67 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
 
   return (
     <>
-      {/* ADDED w-full and max-w-6xl so the container has breathing room */}
-      <div className="w-full max-w-6xl mx-auto flex h-[550px] bg-[#0b1220] border border-slate-800 rounded-xl overflow-hidden relative shadow-2xl">
-        
-        {/* ADDED min-w-0 so the calendar shrinks to make room for the sidebar */}
-        <div className={`flex-1 min-w-0 flex flex-col p-4 transition-all duration-300 ${isSidebarOpen ? 'pr-4 border-r border-slate-800' : ''}`}>
-          
+      <div className="w-full flex flex-col lg:flex-row h-[600px] overflow-hidden relative">
+
+        {/* Calendar Main Area */}
+        <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:pr-6 lg:border-r border-zinc-800/60' : ''}`}>
+
           {/* Header Controls */}
-          <div className="flex items-center justify-between mb-4 w-full">
-            
-            {/* LEFT: View Toggles */}
-            <div className="flex-1 flex justify-start gap-2">
-              <button onClick={() => setView(Views.MONTH)} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${view === Views.MONTH ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-slate-400 bg-slate-800 hover:bg-slate-700'}`}>Month</button>
-              <button onClick={() => setView(Views.WEEK)} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${view === Views.WEEK ? 'bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-slate-400 bg-slate-800 hover:bg-slate-700'}`}>Week</button>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5 w-full">
+
+            {/* LEFT: View Toggles (Segmented Control) */}
+            <div className="w-full sm:w-auto flex justify-start order-2 sm:order-1">
+              <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-full sm:w-fit">
+                <button
+                  onClick={() => setView(Views.MONTH)}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${view === Views.MONTH ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 border border-transparent'}`}
+                >
+                  Month
+                </button>
+                <button
+                  onClick={() => setView(Views.WEEK)}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${view === Views.WEEK ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 border border-transparent'}`}
+                >
+                  Week
+                </button>
+              </div>
             </div>
-            
+
             {/* CENTER: Month & Navigation Arrows */}
-            <div className="flex-1 flex justify-center items-center gap-2">
-              <button onClick={() => setDate(moment(date).subtract(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
-                <ChevronLeft size={16}/>
+            <div className="flex-1 flex justify-center items-center gap-3 order-1 sm:order-2 w-full sm:w-auto">
+              <button
+                onClick={() => setDate(moment(date).subtract(1, view as any).toDate())}
+                className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+              >
+                <ChevronLeft size={18} />
               </button>
-              
-              <span className="text-sm font-bold tracking-tight text-slate-200 w-32 text-center">
+
+              <span className="text-[15px] font-semibold tracking-tight text-zinc-100 min-w-[140px] text-center">
                 {moment(date).format('MMMM YYYY')}
               </span>
-              
-              <button onClick={() => setDate(moment(date).add(1, view as any).toDate())} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
-                <ChevronRight size={16}/>
+
+              <button
+                onClick={() => setDate(moment(date).add(1, view as any).toDate())}
+                className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+              >
+                <ChevronRight size={18} />
               </button>
             </div>
 
             {/* RIGHT: Edit Plan Button */}
-            <div className="flex-1 flex justify-end">
-              <button 
+            <div className="w-full sm:w-auto flex justify-end order-3">
+              <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-widest text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 border border-cyan-400/20 transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 hover:text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.1)]"
               >
-                <Settings2 className="w-3.5 h-3.5" />
+                <Settings2 className="w-4 h-4" />
                 Edit Plan
               </button>
             </div>
-
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          {/* Calendar Grid */}
+          <div className="flex-1 overflow-hidden rounded-lg border border-zinc-800/40 bg-zinc-950/20">
             <Calendar
               localizer={localizer}
               events={events}
@@ -207,7 +238,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
               date={date}
               onNavigate={setDate}
               eventPropGetter={eventPropGetter}
-              dayPropGetter={dayPropGetter} 
+              dayPropGetter={dayPropGetter}
               toolbar={false}
               selectable={true}
               onSelectSlot={(info) => { setSelectedDate(info.start); setIsSidebarOpen(true); }}
@@ -219,8 +250,8 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
 
         {/* SIDEBAR RENDER */}
         {isSidebarOpen && selectedDate && (
-          <div className="w-80 shrink-0"> {/* Wrapper to enforce sidebar width */}
-            <TaskSidebar 
+          <div className="w-full lg:w-80 shrink-0 lg:pl-6 mt-6 lg:mt-0 animate-in slide-in-from-right-4 fade-in duration-300">
+            <TaskSidebar
               selectedDate={selectedDate}
               onClose={() => setIsSidebarOpen(false)}
               tasksForSelectedDate={currentTasks}
@@ -235,31 +266,32 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
             />
           </div>
         )}
-        
-        {/* CSS STYLES HIDDEN FOR BREVITY - KEEP YOUR EXISTING STYLES HERE */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          .rbc-calendar { color: #e2e8f0; font-family: inherit; }
-          .rbc-month-view, .rbc-time-view { border: none !important; background: #0b1220 !important; } 
-          .rbc-header { border-bottom: 1px solid #1e293b !important; padding: 12px 0 !important; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; border-left: none !important; color: #94a3b8; }
+
+        {/* CSS STYLES FOR REACT-BIG-CALENDAR */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          .rbc-calendar { color: #f4f4f5; font-family: inherit; }
+          .rbc-month-view, .rbc-time-view { border: none !important; background: transparent !important; } 
+          .rbc-header { border-bottom: 1px solid rgba(39, 39, 42, 0.6) !important; padding: 10px 0 !important; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; border-left: none !important; color: #a1a1aa; font-weight: 600; }
           .rbc-time-view .rbc-time-gutter { display: none !important; }
           .rbc-time-view .rbc-time-content { display: none !important; }
           .rbc-time-view .rbc-time-header-gutter { display: none !important; }
           .rbc-time-view .rbc-time-header { flex: 1; border-bottom: none !important; min-height: 420px; }
           .rbc-time-header-content { border-left: none !important; }
-          .rbc-time-header .rbc-day-bg { border-left: 1px solid #1e293b !important; }
-          .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1e293b !important; }
-          .rbc-month-row + .rbc-month-row { border-top: 1px solid #1e293b !important; }
+          .rbc-time-header .rbc-day-bg { border-left: 1px solid rgba(39, 39, 42, 0.4) !important; }
+          .rbc-day-bg + .rbc-day-bg { border-left: 1px solid rgba(39, 39, 42, 0.4) !important; }
+          .rbc-month-row + .rbc-month-row { border-top: 1px solid rgba(39, 39, 42, 0.4) !important; }
           .rbc-day-bg:hover { background-color: rgba(255, 255, 255, 0.02) !important; cursor: pointer; }
           .rbc-off-range-bg { background: transparent !important; }
-          .rbc-off-range { color: #64748b !important; } 
-          .rbc-today { background: rgba(34, 211, 238, 0.03) !important; }
-          .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #e2e8f0; }
-          .rbc-now .rbc-date-cell { color: #22d3ee !important; font-weight: bold; }
-          .rbc-show-more { color: #22d3ee !important; font-size: 0.65rem !important; font-weight: 700 !important; background: transparent !important; }
+          .rbc-off-range { color: #52525b !important; } 
+          .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #d4d4d8; font-weight: 500; }
+          .rbc-now .rbc-date-cell { color: #c084fc !important; font-weight: 700; }
+          .rbc-show-more { color: #c084fc !important; font-size: 0.65rem !important; font-weight: 600 !important; background: transparent !important; padding-top: 4px; }
+          .rbc-event { padding: 0 !important; background-color: transparent !important; }
         ` }} />
       </div>
 
-      <EditCalendarModal 
+      <EditCalendarModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialEvents={events}
