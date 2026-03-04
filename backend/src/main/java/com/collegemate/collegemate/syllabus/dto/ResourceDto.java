@@ -12,5 +12,6 @@ import java.util.List;
 public class ResourceDto {
     private String type;
     private String url;
+    private String fallbackQueryUrl;
     private String title;
 }

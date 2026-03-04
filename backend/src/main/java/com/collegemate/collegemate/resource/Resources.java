@@ -43,6 +43,11 @@ public class Resources {
     @URL
     private String url;
 
+    @Column(nullable = false)
+    @NotBlank
+    @URL
+    private String fallbackQueryUrl;
+
     @ManyToOne
     @JoinColumn(name = "topic_id", nullable = false)
     @JsonBackReference("topic-resource")

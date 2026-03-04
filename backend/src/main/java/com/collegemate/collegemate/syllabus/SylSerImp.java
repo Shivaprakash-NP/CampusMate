@@ -25,11 +25,13 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class SylSerImp {
-    public final ChatClient chatClient;
-    public final SyllabusRepo syllabusRepo;
-    public final UserRepository userRepo;
-    public final ObjectMapper objectMapper;
-    public final TopicRepository topicRepository;
+    private final ChatClient chatClient;
+    private final SyllabusRepo syllabusRepo;
+    private final UserRepository userRepo;
+    private final ObjectMapper objectMapper;
+    private final TopicRepository topicRepository;
+    private final OEmbedValidationService oEmbedValidationService;
+    private final ArticleValidationService articleValidationService;
 
     private String calculateSHA256(String text) {
         try {
@@ -65,19 +67,23 @@ public class SylSerImp {
         }
 
         String prompt = """
-            You are an expert curriculum parser and educational curator. Extract the main subject name, along with all topics and subtopics from the following syllabus.
-
-            CRITICAL RESOURCE INSTRUCTIONS:
-            1. You must provide specific, direct, and real URLs for the resources. DO NOT output general search queries.
-            2. For VIDEO types, provide a specific YouTube watch URL format: 'https://www.youtube.com/watch?v=[video_id]'. Choose highly popular, fundamental videos for the topic.
-            3. For ARTICLE types, provide specific URLs ONLY from reputable sites like geeksforgeeks.org, tutorialspoint.com, or javatpoint.com.
-            4. ZERO HALLUCINATION: If you are not 100% confident a specific URL exists, provide the closest valid root URL for the topic rather than guessing a fake path.
-
-            You must respond ONLY with a valid JSON array matching the exact structure below. Do not include markdown formatting like ```json.
-
-            Structure:
+            You are an expert curriculum parser and educational curator. Extract the exact main subject name, along with all topics and subtopics from the provided syllabus text.
+        
+            CRITICAL INSTRUCTIONS FOR SUBJECT NAME:
+            1. EXTRACT, DO NOT GUESS: You must extract the exact subject/course name as it appears in the syllabus text. Do not invent, infer, or guess a generic name. Look for the most prominent header or title at the beginning of the text.
+        
+            CRITICAL INSTRUCTIONS FOR RESOURCES & URLS:
+            1. PREVENTING 404 ERRORS: Large Language Models sometimes hallucinate specific URLs. If you are not 100% certain that a specific direct URL exists, provide the closest valid root URL. 
+            2. FALLBACK QUERIES REQUIRED: Because exact URLs may break or result in 404s, you MUST provide a `fallbackQueryUrl` for EVERY resource. 
+               - For VIDEO: The fallback must be a fully formed YouTube search URL (e.g., https://www.youtube.com/results?search_query=Your+Topic+Here).
+               - For ARTICLE: The fallback must be a fully formed Google search URL targeting reputable sites (e.g., https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:javatpoint.com+Your+Topic+Here).
+            3. REPUTABLE SOURCES ONLY: For articles, use geeksforgeeks.org, tutorialspoint.com, or javatpoint.com. For videos, use youtube.com.
+        
+            You must respond ONLY with a valid JSON object matching the exact structure below. Do not include markdown formatting like ```json or ``` at the beginning or end.
+        
+            Expected JSON Structure:
             {
-              "syllabusTitle": "Extracted Subject Name (e.g. Operating Systems)",
+              "syllabusTitle": "EXACT Subject Name extracted from text",
               "topics": [
                 {
                   "title": "Main Topic Name",
@@ -87,13 +93,15 @@ public class SylSerImp {
                       "resources": [
                         {
                           "type": "VIDEO",
-                          "title": "Detailed Video on [Subtopic Name]",
-                          "url": "https://www.youtube.com/watch?v=specific_video_id"
+                          "title": "Video on [Subtopic Name]",
+                          "url": "https://www.youtube.com/watch?v=specific_video_id",
+                          "fallbackQueryUrl": "https://www.youtube.com/results?search_query=Subject+Name+Subtopic+Name"
                         },
                         {
                           "type": "ARTICLE",
-                          "title": "Comprehensive Guide on [Subtopic Name]",
-                          "url": "https://www.geeksforgeeks.org/specific-article-slug/"
+                          "title": "Guide on [Subtopic Name]",
+                          "url": "https://www.geeksforgeeks.org/specific-article-slug/",
+                          "fallbackQueryUrl": "https://www.google.com/search?q=site:geeksforgeeks.org+OR+site:tutorialspoint.com+Subject+Name+Subtopic+Name"
                         }
                       ]
                     }
@@ -101,7 +109,7 @@ public class SylSerImp {
                 }
               ]
             }
-
+        
             Syllabus Text:
             """ + syllabusText;
 
@@ -148,11 +156,22 @@ public class SylSerImp {
                                 resource.setTitle(resDto.getTitle());
 
                                 String rawURL = resDto.getUrl();
+                                String rawfallBackURL = resDto.getFallbackQueryUrl();
+
                                 if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
                                     rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
                                 }
 
-                                resource.setUrl(rawURL);
+                                if(rawfallBackURL != null && rawfallBackURL.contains("](") && rawfallBackURL.endsWith(")")) {
+                                    rawfallBackURL = rawfallBackURL.substring(rawfallBackURL.indexOf("](")+2, rawfallBackURL.length()-1);
+                                }
+
+                                boolean isValid = false;
+                                isValid |= oEmbedValidationService.isUrlValid("https://www.youtube.com/oembed", rawURL);
+                                isValid |= articleValidationService.isArticleUrlValid(rawURL);
+
+                                if(isValid) resource.setUrl(rawURL);
+                                else resource.setUrl(rawfallBackURL);
 
                                 try {
                                     resource.setType(Types.valueOf(resDto.getType().toUpperCase()));
