@@ -13,17 +13,24 @@ import com.collegemate.collegemate.topic.TopicRepository;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.collegemate.collegemate.user.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +40,7 @@ public class ScheduleService {
     public final UserRepository userRepo;
     public final ObjectMapper objectMapper;
     public final TopicRepository topicRepository;
+    public final ScheduleRepo scheduleRepo;
 
     private String calculateSHA256(String text) {
         try {
@@ -187,10 +195,96 @@ public class ScheduleService {
         }
     }
 
-    public Schedule generateSchedule(ScheduleGenerateRequest scheduleGenerateRequest) {
-        LocalDate start = scheduleGenerateRequest.getStartDate();
-        LocalDate end = scheduleGenerateRequest.getEndDate();
+    public Schedule generateSchedule(ScheduleGenerateRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        return null;
+        Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
+
+        Schedule schedule = new Schedule();
+        schedule.setStartDate(request.getStartDate());
+        schedule.setEndDate(request.getEndDate());
+        schedule.setUser(currentUser);
+
+        List<Topic> prioritizedTopics = new ArrayList<>();
+
+        for (ScheduleGenerateRequest.PortionLimit portion : request.getPortions()) {
+            Syllabus syllabus = syllabusRepo.findById(portion.getSyllabusId())
+                    .orElseThrow(() -> new RuntimeException("Syllabus not found"));
+
+            List<Topic> relevantTopics = syllabus.getTopics().stream()
+                    .filter(t -> t.getSequenceOrder() <= portion.getEndSequenceOrder())
+                    .collect(Collectors.toList());
+
+            if (portion.getPyq() != null && !portion.getPyq().isEmpty()) {
+                StringBuilder pyqTextBuilder = new StringBuilder();
+                for (var pyqFile : portion.getPyq()) {
+                    try (PDDocument doc = Loader.loadPDF(pyqFile.getBytes())) {
+                        pyqTextBuilder.append(new PDFTextStripper().getText(doc).toLowerCase());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                String pyqText = pyqTextBuilder.toString();
+
+                Map<Topic, Integer> topicWeights = new HashMap<>();
+
+                for (Topic topic : relevantTopics) {
+                    int mentions = countMentions(pyqText, topic.getTitle().toLowerCase());
+                    for (Topic subTopic : topic.getSubTopics()) {
+                        mentions += countMentions(pyqText, subTopic.getTitle().toLowerCase());
+                    }
+                    topicWeights.put(topic, mentions);
+                }
+
+                relevantTopics.sort((t1, t2) ->
+                        topicWeights.get(t2).compareTo(topicWeights.get(t1))
+                );
+            }
+
+            prioritizedTopics.addAll(relevantTopics);
+        }
+
+        int totalDays = request.getEndDate().compareTo(request.getStartDate()) + 1;
+        int totalTopics = prioritizedTopics.size();
+
+        int topicsPerDay = totalTopics / totalDays;
+        int remainder = totalTopics % totalDays;
+
+        int topicIndex = 0;
+
+        for (int i = 0; i < totalDays; i++) {
+            SchedulePerDay scheduleDay = new SchedulePerDay();
+            scheduleDay.setDate(request.getStartDate().plusDays(i));
+            scheduleDay.setSchedule(schedule);
+
+            int topicsForThisDay = topicsPerDay;
+
+            if (remainder > 0) {
+                topicsForThisDay++;
+                remainder--;
+            }
+
+            for (int j = 0; j < topicsForThisDay && topicIndex < totalTopics; j++) {
+                Topic topicToAssign = prioritizedTopics.get(topicIndex);
+                topicToAssign.setSchedulePerDay(scheduleDay);
+                scheduleDay.getTopics().add(topicToAssign);
+                topicIndex++;
+            }
+
+            schedule.getSchedulePerDayList().add(scheduleDay);
+        }
+
+        return scheduleRepo.save(schedule);
+    }
+
+    private int countMentions(String fullText, String keyword) {
+        if (keyword == null || keyword.isEmpty()) return 0;
+        int count = 0;
+        int lastIndex = 0;
+        while ((lastIndex = fullText.indexOf(keyword, lastIndex)) != -1) {
+            count++;
+            lastIndex += keyword.length();
+        }
+        return count;
     }
 }
