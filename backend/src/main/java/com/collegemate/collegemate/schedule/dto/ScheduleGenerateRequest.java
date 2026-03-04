@@ -8,13 +8,15 @@ import java.util.List;
 
 @Data
 public class ScheduleGenerateRequest {
+    private String PlanTitle;
     private LocalDate startDate;
     private LocalDate endDate;
     private List<PortionLimit> portions;
 
     @Data
     public static class PortionLimit {
-        private Long syllabusId;
+        private String Title;
+        private MultipartFile syllabusFile;
         private Integer endSequenceOrder;
         private List<MultipartFile> pyq;
     }
