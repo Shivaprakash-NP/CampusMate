@@ -128,136 +128,149 @@ export default function FileUpload() {
   }
 
   return (
-    <div className="min-h-screen text-white bg-gradient-to-b from-[#0f343f] via-[#0b1a22] to-[#0b1220] p-2 md:p-4 font-sans">
-      <div className="mx-auto max-w-7xl flex flex-col gap-3 md:gap-4">
-        <div className="rounded-xl border border-white/10 bg-[#0b1220]">
-          <Navbar />
-        </div>
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col selection:bg-cyan-500/30">
+      
+      {/* Sticky Edge-to-Edge Navbar */}
+      <div className="sticky top-0 z-40 w-full">
+        <Navbar />
+      </div>
+      
+      {/* Centered Focused Layout */}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-20 flex flex-col">
         
-        <div className="flex w-full flex-col items-center justify-center pt-8 md:pt-16 pb-8 md:pb-12 px-2">
-          <div className="w-full max-w-2xl">
-            {/* Header */}
-            <div className="mb-6 md:mb-8 text-center">
-              <div className="mx-auto mb-3 md:mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl bg-transparent ring-1 ring-[#38bdf8]/50 shadow-[0_0_15px_rgba(56,189,248,0.3)] backdrop-blur-sm">
-                <FileUp className="h-6 w-6 md:h-7 md:w-7 text-[#38bdf8]" />
-              </div>
-              <h1 className="text-balance text-xl md:text-2xl font-bold tracking-tight text-[#ffffff]">
-                Upload Your Files
-              </h1>
-              <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
-                Drag and drop or browse to upload your study materials
-              </p>
-            </div>
-
-            {/* Upload Card */}
-            <div className="rounded-xl border border-white/10 bg-[#0b1220]/60 backdrop-blur-md p-4 md:p-6 shadow-2xl shadow-black/50">
-              
-              {/* Drop Zone */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => inputRef.current?.click()}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-10 md:px-6 md:py-14 transition-all duration-200 ${
-                  isDragging
-                    ? "border-[#38bdf8] bg-[#38bdf8]/10"
-                    : "border-slate-700 hover:border-[#38bdf8]/50 hover:bg-[#38bdf8]/5"
-                }`}
-              >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  multiple // Added multiple support
-                  className="sr-only"
-                  onChange={handleFileChange}
-                />
-
-                <div className={`mb-3 md:mb-4 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full transition-colors ${
-                    isDragging ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "bg-slate-800 text-slate-400 group-hover:bg-[#38bdf8]/10 group-hover:text-[#38bdf8]"
-                  }`}>
-                  <Upload className="h-5 w-5 md:h-6 md:w-6" />
-                </div>
-                <p className="mb-1 text-xs md:text-sm font-medium text-[#ffffff] text-center">
-                  {isDragging ? "Drop your files here" : "Click to browse or drag and drop"}
-                </p>
-                <p className="text-[10px] md:text-xs text-slate-400">
-                  PDF, DOCX, TXT, PPT, and more
-                </p>
-              </div>
-
-              {/* File List Section */}
-              <div className="mt-6 space-y-3 max-h-[400px] overflow-y-auto pr-1">
-                {tasks.map((task) => (
-                  <div key={task.id} className="rounded-lg border border-slate-800 bg-[#020617]/50 p-3 md:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg bg-[#38bdf8]/10">
-                        <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#38bdf8]" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-xs md:text-sm font-medium text-[#ffffff]">
-                            {task.file.name}
-                          </p>
-                          <button
-                            onClick={() => removeTask(task.id)}
-                            className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-[#ffffff]"
-                            disabled={task.status === "uploading" || task.status === "processing"}
-                          >
-                            <X className="h-3 w-3 md:h-4 md:w-4" />
-                          </button>
-                        </div>
-                        <p className="mt-0.5 text-[10px] md:text-xs text-slate-400">
-                          {formatSize(task.file.size)}
-                        </p>
-
-                        {/* Progress Bar Area */}
-                        {(task.status === "uploading" || task.status === "processing") && (
-                          <div className="mt-3">
-                            <div className="mb-1 flex items-center justify-between text-[10px] md:text-xs text-slate-400">
-                              <span className="flex items-center gap-1.5">
-                                <Loader2 className="h-3 w-3 animate-spin text-[#22d3ee]" />
-                                {task.status === "processing" ? "Processing..." : "Uploading..."}
-                              </span>
-                              <span>{task.progress}%</span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                              <div 
-                                className={`h-full bg-[#22d3ee] transition-all duration-300 ${task.status === "processing" ? "animate-pulse opacity-70" : ""}`}
-                                style={{ width: `${task.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Status Messages */}
-                        {task.status === "success" && (
-                          <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-[#38bdf8]">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Upload complete
-                          </div>
-                        )}
-                        {task.status === "error" && (
-                          <div className="mt-2 flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-red-400">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            Upload failed
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-3 md:mt-4 text-center text-[10px] md:text-xs text-slate-500">
-              Files are processed securely and stored for your study sessions
-              
+        {/* Header Section */}
+        <div className="flex flex-col items-center text-center gap-4 mb-10">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 shadow-sm">
+            <FileUp className="h-6 w-6 text-zinc-400" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-100">
+              Upload Syllabus
+            </h1>
+            <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+              Drag and drop or browse to upload your study materials for processing.
             </p>
           </div>
         </div>
-      </div>
+
+        {/* Upload Container */}
+        <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/30 p-2 sm:p-3 shadow-sm backdrop-blur-sm">
+          
+          {/* Drop Zone */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-14 transition-all duration-200 ${
+              isDragging
+                ? "border-cyan-500/50 bg-cyan-500/5"
+                : "border-zinc-700/50 hover:border-zinc-600 hover:bg-zinc-800/30"
+            }`}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              multiple 
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+
+            <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full transition-colors duration-200 ${
+                isDragging 
+                  ? "bg-cyan-500/20 text-cyan-400" 
+                  : "bg-zinc-800 text-zinc-400 group-hover:bg-zinc-700 group-hover:text-zinc-300"
+              }`}>
+              <Upload className="h-5 w-5" />
+            </div>
+            
+            <p className="mb-1 text-sm font-medium text-zinc-200 text-center transition-colors group-hover:text-zinc-100">
+              {isDragging ? "Drop your files here" : "Click to browse or drag and drop"}
+            </p>
+            <p className="text-xs text-zinc-500">
+              PDF, DOCX, TXT, PPT, and more
+            </p>
+          </div>
+
+          {/* File List Section */}
+          {tasks.length > 0 && (
+            <div className="mt-4 space-y-2.5 max-h-[400px] overflow-y-auto px-1 pb-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {tasks.map((task) => (
+                <div 
+                  key={task.id} 
+                  className="rounded-xl border border-zinc-800/50 bg-zinc-900/40 p-4 animate-in fade-in slide-in-from-top-2 duration-300 transition-colors hover:bg-zinc-900/60"
+                >
+                  <div className="flex items-start gap-4">
+                    
+                    {/* File Icon */}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-800/50 border border-zinc-700/30">
+                      <FileText className="h-4 w-4 text-zinc-400" />
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-medium text-zinc-200">
+                          {task.file.name}
+                        </p>
+                        <button
+                          onClick={() => removeTask(task.id)}
+                          className="shrink-0 rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-700"
+                          disabled={task.status === "uploading" || task.status === "processing"}
+                          title="Remove file"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-zinc-500 font-medium">
+                        {formatSize(task.file.size)}
+                      </p>
+
+                      {/* Progress Bar Area */}
+                      {(task.status === "uploading" || task.status === "processing") && (
+                        <div className="mt-3.5">
+                          <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-zinc-400 uppercase tracking-wider">
+                            <span className="flex items-center gap-1.5">
+                              <Loader2 className="h-3 w-3 animate-spin text-cyan-500" />
+                              {task.status === "processing" ? "Processing..." : "Uploading..."}
+                            </span>
+                            <span className="tabular-nums text-zinc-500">{task.progress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80 shadow-inner">
+                            <div 
+                              className={`h-full bg-cyan-500 rounded-full transition-all duration-300 ease-out ${task.status === "processing" ? "animate-pulse opacity-80" : ""}`}
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status Messages */}
+                      {task.status === "success" && (
+                        <div className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Upload complete
+                        </div>
+                      )}
+                      {task.status === "error" && (
+                        <div className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-red-400">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Upload failed
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <p className="mt-6 text-center text-[11px] font-medium text-zinc-500 tracking-wide">
+          Files are processed securely and stored for your study sessions.
+        </p>
+      </main>
     </div>
   )
 }
