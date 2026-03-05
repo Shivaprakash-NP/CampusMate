@@ -102,9 +102,16 @@ public class ScheduleService {
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Failed to match syllabus with requested title: " + targetTitle));
 
-            List<Topic> relevantTopics = matchedSyllabus.getTopics().stream()
+            List<Topic> relevantMainTopics = matchedSyllabus.getTopics().stream()
                     .filter(t -> t.getSequenceOrder() <= portion.getEndSequenceOrder())
                     .collect(Collectors.toList());
+
+            List<Topic> relevantSubTopics = new ArrayList<>();
+            for (Topic mainTopic : relevantMainTopics) {
+                if (mainTopic.getSubTopics() != null && !mainTopic.getSubTopics().isEmpty()) {
+                    relevantSubTopics.addAll(mainTopic.getSubTopics());
+                }
+            }
 
             if (portion.getPyq() != null && !portion.getPyq().isEmpty()) {
                 StringBuilder pyqTextBuilder = new StringBuilder();
@@ -112,50 +119,100 @@ public class ScheduleService {
                     pyqTextBuilder.append(extractTextFromPdf(pyqFile).toLowerCase());
                 }
                 String pyqText = pyqTextBuilder.toString();
-                Map<Topic, Integer> topicWeights = new HashMap<>();
 
-                for (Topic topic : relevantTopics) {
-                    int mentions = countMentions(pyqText, topic.getTitle().toLowerCase());
-                    if (topic.getSubTopics() != null) {
-                        for (Topic subTopic : topic.getSubTopics()) {
-                            mentions += countMentions(pyqText, subTopic.getTitle().toLowerCase());
-                        }
+                Map<Topic, Integer> subTopicWeights = new HashMap<>();
+
+                for (Topic subTopic : relevantSubTopics) {
+                    int mentions = countMentions(pyqText, subTopic.getTitle().toLowerCase());
+
+                    if (subTopic.getParentTopic() != null) {
+                        mentions += (countMentions(pyqText, subTopic.getParentTopic().getTitle().toLowerCase()) / 2);
                     }
-                    topicWeights.put(topic, mentions);
+
+                    subTopicWeights.put(subTopic, mentions);
                 }
-                relevantTopics.sort((t1, t2) -> topicWeights.get(t2).compareTo(topicWeights.get(t1)));
+
+                relevantSubTopics.sort((t1, t2) -> subTopicWeights.get(t2).compareTo(subTopicWeights.get(t1)));
             }
-            prioritizedTopics.addAll(relevantTopics);
+
+            prioritizedTopics.addAll(relevantSubTopics);
         }
 
         int totalDays = (int) ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
-        int totalTopics = prioritizedTopics.size();
+        int totalSubTopics = prioritizedTopics.size();
 
-        if (totalTopics == 0) throw new RuntimeException("No topics found to schedule within the given sequence order!");
+        if (totalSubTopics == 0) throw new RuntimeException("No subtopics found to schedule within the given sequence order!");
 
-        int topicsPerDay = totalTopics / totalDays;
-        int remainder = totalTopics % totalDays;
-        int topicIndex = 0;
+        if (totalSubTopics >= totalDays) {
+            int topicsPerDay = totalSubTopics / totalDays;
+            int remainder = totalSubTopics % totalDays;
+            int topicIndex = 0;
 
-        for (int i = 0; i < totalDays; i++) {
-            SchedulePerDay scheduleDay = new SchedulePerDay();
-            scheduleDay.setDate(request.getStartDate().plusDays(i));
-            scheduleDay.setSchedule(schedule);
-            scheduleDay.setTopics(new ArrayList<>());
+            for (int i = 0; i < totalDays; i++) {
+                SchedulePerDay scheduleDay = new SchedulePerDay();
+                scheduleDay.setDate(request.getStartDate().plusDays(i));
+                scheduleDay.setSchedule(schedule);
+                scheduleDay.setTopics(new ArrayList<>());
 
-            int topicsForThisDay = topicsPerDay;
-            if (remainder > 0) {
-                topicsForThisDay++;
-                remainder--;
+                int topicsForThisDay = topicsPerDay;
+                if (remainder > 0) {
+                    topicsForThisDay++;
+                    remainder--;
+                }
+
+                for (int j = 0; j < topicsForThisDay && topicIndex < totalSubTopics; j++) {
+                    Topic subTopicToAssign = prioritizedTopics.get(topicIndex);
+                    subTopicToAssign.setSchedulePerDay(scheduleDay);
+                    scheduleDay.getTopics().add(subTopicToAssign);
+                    topicIndex++;
+                }
+
+                schedule.getSchedulePerDayList().add(scheduleDay);
+            }
+        }
+        else {
+            int dayIndex = 0;
+
+            for (int i = 0; i < totalSubTopics; i++) {
+                SchedulePerDay scheduleDay = new SchedulePerDay();
+                scheduleDay.setDate(request.getStartDate().plusDays(dayIndex));
+                scheduleDay.setSchedule(schedule);
+                scheduleDay.setTopics(new ArrayList<>());
+
+                Topic subTopicToAssign = prioritizedTopics.get(i);
+                subTopicToAssign.setSchedulePerDay(scheduleDay);
+                scheduleDay.getTopics().add(subTopicToAssign);
+
+                schedule.getSchedulePerDayList().add(scheduleDay);
+                dayIndex++;
             }
 
-            for (int j = 0; j < topicsForThisDay && topicIndex < totalTopics; j++) {
-                Topic topicToAssign = prioritizedTopics.get(topicIndex);
-                topicToAssign.setSchedulePerDay(scheduleDay);
-                scheduleDay.getTopics().add(topicToAssign);
-                topicIndex++;
+            int revisionIndex = 0;
+            while (dayIndex < totalDays) {
+                SchedulePerDay scheduleDay = new SchedulePerDay();
+                scheduleDay.setDate(request.getStartDate().plusDays(dayIndex));
+                scheduleDay.setSchedule(schedule);
+                scheduleDay.setTopics(new ArrayList<>());
+
+                Topic originalSubTopic = prioritizedTopics.get(revisionIndex % totalSubTopics);
+
+                Topic revisionTopic = new Topic();
+                revisionTopic.setTitle("Revision: " + originalSubTopic.getTitle());
+                revisionTopic.setDifficulty(originalSubTopic.getDifficulty());
+                revisionTopic.setCompleted(false);
+                revisionTopic.setUsers(currentUser);
+                revisionTopic.setSyllabus(originalSubTopic.getSyllabus());
+                revisionTopic.setParentTopic(originalSubTopic.getParentTopic());
+                revisionTopic.setSequenceOrder(originalSubTopic.getSequenceOrder() + 1000);
+
+                revisionTopic.setSchedulePerDay(scheduleDay);
+                scheduleDay.getTopics().add(revisionTopic);
+
+                schedule.getSchedulePerDayList().add(scheduleDay);
+
+                revisionIndex++;
+                dayIndex++;
             }
-            schedule.getSchedulePerDayList().add(scheduleDay);
         }
 
         return scheduleRepo.save(schedule);
