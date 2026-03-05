@@ -28,12 +28,8 @@ interface TestDetail {
 
 interface StudyPlanUploadProps {
   planTitle: string
-  onComplete: (data: {
-    planStartDate: string
-    planEndDate: string
-    numTests: number
-    tests: TestDetail[]
-  }) => void
+  // LOGICAL FIX 1: Allow this to pass the backend JSON payload up to the parent router
+  onComplete: (data: any) => void
 }
 
 export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUploadProps) {
@@ -92,7 +88,6 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
     try {
       const formData = new FormData()
 
-      // FIX 1: Strict camelCase mapping to match Spring Boot DTOs
       formData.append('planTitle', planTitle)
       formData.append('startDate', planStartDate)
       formData.append('endDate', planEndDate)
@@ -101,10 +96,8 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
         const portionParts = test.portions.split('-')
         const endSequenceOrder = portionParts.length > 1 ? portionParts[1].trim() : test.portions.trim()
         
-        // FIX 2: Changed .Title to .title to prevent NullPointerException in Java
         formData.append(`portions[${index}].title`, test.subjectName)
         formData.append(`portions[${index}].endSequenceOrder`, endSequenceOrder || '0')
-
 
         if (test.file) {
           formData.append(`portions[${index}].syllabusFile`, test.file)
@@ -117,7 +110,6 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
         }
       })
 
-      // FIX 3: Safely extract JWT Token if Authorization header is required
       let token = ""
       if (typeof window !== 'undefined') {
         token = localStorage.getItem("accessToken") || ""
@@ -140,19 +132,16 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
       })
 
       if (!response.ok) {
-        // If it still fails, the backend text will help debug
         const errorText = await response.text()
         throw new Error(`HTTP error! status: ${response.status}. Details: ${errorText}`)
       }
 
       const data = await response.json()
+      console.log("Backend Schedule Data:", data)
       
-      onComplete({
-        planStartDate,
-        planEndDate,
-        numTests: Number(numTests),
-        tests
-      })
+      // LOGICAL FIX 2: Pass the actual generated backend data back to the parent component
+      // Instead of throwing it away and passing the form inputs!
+      onComplete(data)
 
     } catch (error) {
       console.error('Error submitting to backend:', error)
@@ -193,7 +182,7 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
 
         <div className="relative">
             
-          {/* STEP 1: Global Setup (No Framer Motion) */}
+          {/* STEP 1: Global Setup */}
           {step === 1 && (
             <form
               onSubmit={handleNextStep}
@@ -259,7 +248,7 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
             </form>
           )}
 
-          {/* STEP 2: Per-Test Uploads & Portions (No Framer Motion) */}
+          {/* STEP 2: Per-Test Uploads & Portions */}
           {step === 2 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out">
               <div className="flex flex-col gap-6">
@@ -285,8 +274,6 @@ export default function StudyPlanUpload({ planTitle, onComplete }: StudyPlanUplo
                           className="h-10 bg-zinc-950/50 border-zinc-800 focus-visible:ring-zinc-600 transition-colors"
                         />
                       </div>
-
-                    
                     </div>
 
                     <div className="grid gap-5 sm:grid-cols-2">

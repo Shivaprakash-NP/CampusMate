@@ -1,331 +1,332 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft } from "lucide-react"
-import moment from "moment"
-import Navbar from "../Navbar"
-import { type ExamStudyPlan } from "@/shared/generated-plan" // Removed CAMPUSMATE_PLAN
-import CalendarView from "./CalendarView"
+import React, { useState, useEffect } from "react"
+import { Plus, Trash2, LayoutTemplate, ArrowLeft, Loader2 } from "lucide-react"
+import Navbar from "../Navbar" 
+import StudyPlanUpload from "./StudyPlanUpload"
+import StudyPlanDetail from "./StudyPlan"
 
-interface StudyPlanProps {
-  planSummary?: any;
-  planData?: any; // This receives your backend data object
-  onBack?: () => void;
+// Shadcn Components
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+// --- Types ---
+type PlanStatus = "active" | "draft" | "completed"
+
+interface StudyPlanSummary {
+  id: string
+  title: string
+  description: string
+  targetDate: string
+  progress: number
+  status: PlanStatus
+  fullData?: any 
 }
 
-const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void, onBack?: () => void, title?: string }) => (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-zinc-800/60">
-      <div className="flex flex-col gap-1.5">
-        {onBack && (
-            <button
-                onClick={onBack}
-                className="flex items-center text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors w-fit mb-3"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              Back to Plans
-            </button>
-        )}
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">
-          {title || "Study Plan"}
-        </h1>
-        <p className="text-sm text-zinc-400">
-          Your personalized study roadmap
-        </p>
-      </div>
+export default function StudyPlans() {
+  const [plans, setPlans] = useState<StudyPlanSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newPlanName, setNewPlanName] = useState("")
+  
+  // Navigation States
+  const [isConfiguring, setIsConfiguring] = useState(false)
+  const [activePlanTitle, setActivePlanTitle] = useState("")
+  const [activePlanId, setActivePlanId] = useState<string | null>(null)
 
-      <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-fit">
-        <button
-            onClick={() => setView('text')}
-            className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'text'
-                ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-                : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
-            }`}
-        >
-          <LayoutList className="size-4" />
-          Overview
-        </button>
+  // --- FETCH DATA FROM BACKEND ---
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        let token = localStorage.getItem("accessToken") || "";
+        if (!token) {
+          const match = document.cookie.match(/(?:^|; )accessToken=([^;]*)/);
+          if (match) token = match[1];
+        }
 
-        <button
-            onClick={() => setView('calendar')}
-            className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'calendar'
-                ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-                : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
-            }`}
-        >
-          <Calendar className="size-4" />
-          Calendar
-        </button>
-      </div>
-    </div>
-)
+        const response = await fetch("http://localhost:8080/api/schedule/getSchedule", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include"
+        });
 
-const PlanOverview = ({ title, startDate, endDate }: { title?: string, startDate?: string, endDate?: string }) => {
-  // Dynamically calculate progress based on backend dates
-  const start = startDate ? moment(startDate) : moment();
-  const end = endDate ? moment(endDate) : moment().add(30, 'days');
-  const today = moment();
+        if (!response.ok) throw new Error("Failed to fetch schedules");
 
-  const totalDays = Math.max(1, end.diff(start, 'days') + 1);
-  const completedDays = Math.max(0, today.diff(start, 'days'));
-  const percentage = Math.min(100, Math.max(0, Math.round((completedDays / totalDays) * 100)));
+        const data = await response.json();
+        
+        // Map backend data to frontend interface
+        const mappedPlans: StudyPlanSummary[] = data.map((plan: any) => {
+          let totalTopics = 0;
+          let completedTopics = 0;
+          
+          plan.schedulePerDayList?.forEach((day: any) => {
+            day.topics?.forEach((t: any) => {
+              totalTopics++;
+              if (t.completed) completedTopics++;
+            });
+          });
 
-  return (
-      <div className="flex flex-col gap-8 py-2">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm">
-              <Target className="size-5 text-zinc-300" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">
-              Active Plan
-            </span>
-              <span className="text-lg font-medium tracking-tight text-zinc-100">
-              {title || "Semester Final Prep"}
-            </span>
-            </div>
-          </div>
+          const progressPct = totalTopics === 0 ? 0 : Math.round((completedTopics / totalTopics) * 100);
+          const isCompleted = new Date(plan.endDate) < new Date();
 
-          <div className="flex flex-wrap items-center gap-6 md:gap-10">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-zinc-500">
-                <Calendar className="size-3.5" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Timeline</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-200">
-              {start.format('MMM DD')} - {end.format('MMM DD')}
-            </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-zinc-500">
-                <Clock className="size-3.5" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Intensity</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-200">Adaptive</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-zinc-500">
-                <Zap className="size-3.5" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Focus Score</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-200">Optimal</span>
-            </div>
-          </div>
-        </div>
+          return {
+            id: String(plan.id),
+            // Uses the official title from your updated Java Entity. 
+            // Falls back to ID if it's missing for some reason.
+            title: plan.title || plan.Title || `Study Track #${plan.id}`,
+            description: `${totalTopics} topics scheduled across ${plan.schedulePerDayList?.length || 0} days`,
+            targetDate: plan.endDate,
+            progress: progressPct,
+            status: isCompleted ? "completed" : "active",
+            fullData: plan
+          };
+        });
 
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-zinc-300">Overall Progress</span>
-            <span className="text-zinc-500 font-medium tabular-nums">{percentage}%</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80 shadow-inner">
-            <div
-                className="h-full bg-purple-500 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${percentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
-  )
-}
+        // Sort by newest first
+        mappedPlans.sort((a, b) => Number(b.id) - Number(a.id));
+        setPlans(mappedPlans);
+      } catch (error) {
+        console.error("Error fetching plans:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
-  const todayStr = moment().format('YYYY-MM-DD');
+    if (!isConfiguring && !activePlanId) {
+      fetchSchedules();
+    }
+  }, [isConfiguring, activePlanId]);
 
-  // Find today's plan, if not found, jump to the first day of the schedule
-  let currentDayPlan = normalizedPlan.plan.find(p => p.date === todayStr);
-  if (!currentDayPlan && normalizedPlan.plan.length > 0) {
-    currentDayPlan = normalizedPlan.plan[0];
+  // --- Handlers ---
+  const handleDelete = async (id: string) => {
+    // Optimistic UI Update
+    setPlans((prev) => prev.filter((plan) => plan.id !== id))
+    if (activePlanId === id) setActivePlanId(null)
+    
+    // Note: You can add your fetch DELETE request to the backend here later
+    // await fetch(`http://localhost:8080/api/schedule/${id}`, { method: 'DELETE', ... })
   }
 
-  const items = currentDayPlan?.topics?.map((t, index) => ({
-    topic: t.subject,
-    sub: t.topic,
-    status: index === 0 ? "IN PROGRESS" : "QUEUED",
-    active: index === 0,
-  })) || [];
+  const handleStartConfiguration = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPlanName.trim()) return
 
-  const displayDate = currentDayPlan ? moment(currentDayPlan.date).format('dddd, MMM D') : moment().format('dddd, MMM D');
-  const isActuallyToday = currentDayPlan?.date === todayStr;
+    setActivePlanTitle(newPlanName)
+    setIsCreateModalOpen(false)
+    setIsConfiguring(true) 
+  }
 
-  return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-            {isActuallyToday ? "Today's Focus" : "Next Focus"}
-          </h2>
-          <span className="text-xs font-medium text-zinc-500">
-          {displayDate}
-        </span>
-        </div>
+  const handleFinalSubmit = (configData: any) => {
+    let totalTopics = 0;
+    configData.schedulePerDayList?.forEach((day: any) => {
+      totalTopics += (day.topics?.length || 0);
+    });
 
-        <div className="flex flex-col rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden divide-y divide-zinc-800/50">
-          {items.length > 0 ? items.map(item => (
-              <div
-                  key={item.topic + item.sub}
-                  className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-colors hover:bg-zinc-800/40 cursor-pointer`}
-              >
-                <div className="flex items-start gap-3.5">
-                  <div className="mt-0.5 flex-shrink-0">
-                    {item.active ? (
-                        <CheckCircle className="size-4 text-purple-400" />
-                    ) : (
-                        <CircleDashed className="size-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                <span className={`text-[13px] font-medium transition-colors ${item.active ? 'text-zinc-100' : 'text-zinc-300 group-hover:text-zinc-200'}`}>
-                  {item.topic}
-                </span>
-                    <span className="text-xs text-zinc-500">{item.sub}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 self-end sm:self-auto ml-7 sm:ml-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-              <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
-                {item.status}
-              </span>
-                  <button className="text-zinc-600 hover:text-zinc-300 transition-colors">
-                    <ArrowRight className="size-4" />
-                  </button>
-                </div>
-              </div>
-          )) : (
-              <div className="p-6 text-center text-sm text-zinc-500 font-medium">
-                No topics scheduled for this date.
-              </div>
-          )}
-        </div>
-      </div>
-  )
-}
-
-const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
-  const todayStr = moment().format('YYYY-MM-DD');
-  // Get upcoming days (excluding today) and take the next 3
-  const upcomingDays = normalizedPlan.plan.filter(p => p.date > todayStr).slice(0, 3);
-
-  return (
-      <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold text-zinc-100 pl-1">
-          Looking Ahead
-        </h2>
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-          {upcomingDays.length > 0 ? upcomingDays.map((day) => {
-            const displayLabel = moment(day.date).calendar(null, {
-              nextDay: '[Tomorrow]',
-              nextWeek: 'ddd',
-              sameElse: 'MMM D'
-            });
-            const firstTopic = day.topics?.[0];
-
-            return (
-                <div
-                    key={day.date}
-                    className="group flex flex-col gap-3 p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                  {displayLabel}
-                </span>
-                    <ArrowRight className="size-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors">
-                  {firstTopic?.subject || "Study Session"}
-                </span>
-                    <span className="text-xs text-zinc-500 line-clamp-1">
-                  {firstTopic?.topic || "Assigned portions"}
-                </span>
-                  </div>
-                </div>
-            )
-          }) : (
-              <div className="col-span-3 p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 text-center text-zinc-500 text-sm">
-                No upcoming schedules found.
-              </div>
-          )}
-        </div>
-      </div>
-  )
-}
-
-const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
-  const [view, setView] = useState<'text' | 'calendar'>('text')
-
-  // Adapter: Convert the backend schedulePerDayList object into the ExamStudyPlan interface
-  const normalizedPlanData: ExamStudyPlan = useMemo(() => {
-    // Return an empty, safe structure instead of dummy data if the backend data is missing
-    if (!planData || !planData.schedulePerDayList) {
-      return {
-        exam_date: "",
-        total_days: 0,
-        daily_study_hours: 0,
-        strategy: "",
-        plan: []
-      };
+    const newPlan: StudyPlanSummary = {
+      id: String(configData.id || Date.now()),
+      title: configData.title || configData.Title || activePlanTitle, 
+      description: `${totalTopics} topics scheduled across ${configData.schedulePerDayList?.length || 0} days`,
+      targetDate: configData.endDate || "TBD",
+      progress: 0,
+      status: "active",
+      fullData: configData 
     }
 
-    return {
-      exam_date: planData.endDate || "",
-      total_days: planData.schedulePerDayList.length,
-      daily_study_hours: 2, // Assuming a default of 2 hours, you can update this if your backend provides it
-      strategy: "Adaptive Backend Plan",
-      plan: planData.schedulePerDayList.map((dayItem: any, index: number) => ({
-        day: index + 1,
-        date: dayItem.date,
-        focus: "Daily Study Focus",
-        tasks: [],
-        topics: (dayItem.topics || []).map((t: any) => ({
-          subject: t.title || t.subjectName || t.subject || "Topic Focus",
-          topic: t.description || t.topicName || t.topic || "Study Session",
-          estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
-          subtopics: t.subtopics || []
-        }))
-      }))
-    };
-  }, [planData]);
+    setPlans([newPlan, ...plans])
+    setIsConfiguring(false)
+    setNewPlanName("")
+    setActivePlanId(newPlan.id) 
+  }
+
+  const StatusIndicator = ({ status }: { status: PlanStatus }) => {
+    const styles = {
+      completed: "text-emerald-400",
+      active: "text-[#818cf8]",
+      draft: "text-zinc-500"
+    }
+    return (
+      <span className={`text-[11px] font-semibold uppercase tracking-wider ${styles[status]}`}>
+        {status}
+      </span>
+    )
+  }
+
+  // --- ROUTING RENDERER ---
+  if (activePlanId) {
+    const selectedPlan = plans.find((p) => p.id === activePlanId)
+
+    // FIX: Add this safety return. TypeScript now knows 'selectedPlan' is definitively NOT undefined.
+    if (!selectedPlan) return null; 
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <StudyPlanDetail 
+          planSummary={selectedPlan} 
+          planData={selectedPlan.fullData} // You can also remove the '?' here now
+          onBack={() => setActivePlanId(null)} 
+        />
+      </div>
+    )
+  }
 
   return (
-      <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-zinc-800 text-zinc-100 flex flex-col">
+      <div className="sticky top-0 z-40 w-full">
+        <Navbar />
+      </div>
 
-        {!onBack && (
-            <div className="sticky top-0 z-40 w-full">
-              <Navbar />
-            </div>
-        )}
-
-        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
-
-          <StudyPlanHeader
-              view={view}
-              setView={setView}
-              onBack={onBack}
-              title={planSummary?.title || planData?.title}
+      {isConfiguring ? (
+        // CONFIGURATION VIEW
+        <div className="flex-1 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="max-w-5xl mx-auto px-4 pt-8">
+             <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsConfiguring(false)}
+              className="text-zinc-400 hover:text-zinc-100 mb-4 transition-colors"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Plans
+            </Button>
+          </div>
+          <StudyPlanUpload 
+            planTitle={activePlanTitle} 
+            onComplete={handleFinalSubmit} 
           />
+        </div>
+      ) : (
+        // DASHBOARD LIST VIEW
+        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="flex flex-col gap-1.5">
+              <h1 className="text-2xl md:text-3xl font-semibold text-zinc-100 tracking-tight">Study Plans</h1>
+              <p className="text-sm text-zinc-400 max-w-md">Manage your generated study tracks and roadmaps.</p>
+            </div>
 
-          <div className="w-full">
-            {view === 'text' ? (
-                <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out">
-                  <PlanOverview
-                      title={planSummary?.title || planData?.title}
-                      startDate={planData?.startDate}
-                      endDate={planData?.endDate}
-                  />
-                  <TodaysFocus normalizedPlan={normalizedPlanData} />
-                  <UpcomingSchedule normalizedPlan={normalizedPlanData} />
-                </div>
-            ) : (
-                <div className="w-full rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-2 sm:p-6 shadow-sm backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 ease-out">
-                  <CalendarView planData={normalizedPlanData} />
-                </div>
-            )}
+            <Button
+              size="sm"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="h-9 bg-zinc-200 text-zinc-950 hover:bg-white font-semibold shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Plan
+            </Button>
           </div>
 
+          <div className="flex flex-col gap-4">
+            <div className="hidden md:grid grid-cols-[1fr_120px_100px_160px_40px] gap-6 px-5 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+              <span>Plan Name</span>
+              <span>Target Date</span>
+              <span>Status</span>
+              <span>Progress</span>
+              <span className="text-right">Actions</span>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden shadow-sm backdrop-blur-sm min-h-[200px] flex flex-col">
+              
+              {/* LOADING STATE */}
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center flex-1 py-16 px-4">
+                  <Loader2 className="h-8 w-8 text-zinc-600 animate-spin mb-4" />
+                  <h3 className="text-sm font-medium text-zinc-400">Loading your plans...</h3>
+                </div>
+              ) : plans.length === 0 ? (
+                
+                /* EMPTY STATE */
+                <div className="flex flex-col items-center justify-center flex-1 py-16 px-4 animate-in fade-in duration-500">
+                  <LayoutTemplate className="h-10 w-10 text-zinc-700 mb-4" />
+                  <h3 className="text-sm font-medium text-zinc-200 mb-1">No study plans yet</h3>
+                  <p className="text-xs text-zinc-500 max-w-[250px] text-center mb-6">Create your first study roadmap by uploading a syllabus.</p>
+                  <Button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    variant="outline"
+                    className="border-zinc-700 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Plan
+                  </Button>
+                </div>
+              ) : (
+                
+                /* POPULATED LIST */
+                <div className="flex flex-col divide-y divide-zinc-800/50">
+                  {plans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      onClick={() => setActivePlanId(plan.id)}
+                      className="group flex flex-col md:grid md:grid-cols-[1fr_120px_100px_160px_40px] md:items-center gap-4 md:gap-6 py-4 px-4 md:px-5 hover:bg-zinc-800/40 transition-all duration-200 cursor-pointer animate-in fade-in"
+                    >
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <h3 className="text-sm font-medium text-zinc-200 group-hover:text-zinc-50 transition-colors truncate">{plan.title}</h3>
+                        <p className="text-[13px] text-zinc-500 truncate">{plan.description}</p>
+                      </div>
+                      <div className="text-[13px] text-zinc-500">{plan.targetDate}</div>
+                      <StatusIndicator status={plan.status} />
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden shadow-inner">
+                          <div 
+                            style={{ width: `${plan.progress}%` }}
+                            className="h-full bg-zinc-200 transition-all duration-500 ease-out" 
+                          />
+                        </div>
+                        <span className="text-[12px] text-zinc-500 tabular-nums">{plan.progress}%</span>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" 
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            handleDelete(plan.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </main>
-      </div>
+      )}
+
+      {/* CREATE PLAN NAME MODAL */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100 rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Create New Plan</DialogTitle>
+            <DialogDescription className="text-zinc-400">Step 1: Name your study roadmap.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleStartConfiguration} className="space-y-6 pt-4">
+            <div className="space-y-2.5">
+              <Label htmlFor="name" className="text-zinc-300">Plan Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g. Semester Finals"
+                value={newPlanName}
+                onChange={(e) => setNewPlanName(e.target.value)}
+                className="bg-zinc-900 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-600 transition-all"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={!newPlanName.trim()} className="bg-zinc-100 hover:bg-white text-zinc-950 font-semibold w-full transition-colors">
+                Continue to Setup
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
-
-export default StudyPlan
