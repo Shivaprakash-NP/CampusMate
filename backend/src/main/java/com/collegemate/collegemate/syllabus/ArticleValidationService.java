@@ -26,7 +26,7 @@ public class ArticleValidationService {
 
             ResponseEntity<Void> response = restTemplate.exchange(
                     targetUrl,
-                    HttpMethod.HEAD, // Only fetch headers, not the whole body
+                    HttpMethod.HEAD,
                     requestEntity,
                     Void.class
             );
