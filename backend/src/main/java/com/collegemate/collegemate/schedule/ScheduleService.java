@@ -62,12 +62,17 @@ public class ScheduleService {
             String extractedText = extractTextFromPdf(portion.getSyllabusFile());
             String contentHash = calculateSHA256(extractedText);
 
-            Optional<Syllabus> existingSyllabus = syllabusRepo.findByUserAndContentHash(currentUser, contentHash);
+            Optional<Syllabus> existingSyllabus = syllabusRepo.findFirstByUserAndContentHashAndIsForGeneralTrue(currentUser, contentHash);
 
             if (existingSyllabus.isPresent()) {
-                System.out.println("FOUND DUPLICATE IN DB FOR: " + subjectTitle);
-                // Immediately map the exact user title to the found database object
-                titleToSyllabusMap.put(subjectTitle, existingSyllabus.get());
+                System.out.println("FOUND DUPLICATE IN DB FOR: " + subjectTitle + " -> CLONING DATA");
+
+                Syllabus clonedSyllabus = cloneSyllabusEntity(existingSyllabus.get(), subjectTitle, currentUser);
+
+                Syllabus savedClone = syllabusRepo.save(clonedSyllabus);
+
+                titleToSyllabusMap.put(subjectTitle, savedClone);
+
             } else {
                 System.out.println("NO DUP, PREPARING FOR AI: " + subjectTitle);
                 combinedSyllabusText.append("BEGIN SYLLABUS TITLE: ").append(subjectTitle).append("\n");
@@ -82,7 +87,6 @@ public class ScheduleService {
 
         if (needsAiCall) {
             List<Syllabus> newSyllabuses = extractAndSaveSyllabuses(combinedSyllabusText.toString(), currentUser, pendingTitles, pendingHashes);
-            // Map the newly generated AI syllabuses back to their exact titles
             for (int i = 0; i < newSyllabuses.size(); i++) {
                 titleToSyllabusMap.put(pendingTitles.get(i), newSyllabuses.get(i));
             }
@@ -93,6 +97,7 @@ public class ScheduleService {
         schedule.setEndDate(request.getEndDate());
         schedule.setUser(currentUser);
         schedule.setSchedulePerDayList(new ArrayList<>());
+        schedule.setTitle(request.getPlanTitle());
 
         List<Topic> prioritizedTopics = new ArrayList<>();
 
@@ -221,6 +226,58 @@ public class ScheduleService {
         return scheduleRepo.save(schedule);
     }
 
+    private Syllabus cloneSyllabusEntity(Syllabus original, String newTitle, Users currentUser) {
+        Syllabus clonedSyllabus = new Syllabus();
+        clonedSyllabus.setTitle(newTitle);
+        clonedSyllabus.setContentHash(original.getContentHash());
+        clonedSyllabus.setUser(currentUser);
+        clonedSyllabus.setTopics(new ArrayList<>());
+        clonedSyllabus.setForGeneral(false);
+
+        if (original.getTopics() != null) {
+            for (Topic originalMainTopic : original.getTopics()) {
+                if (originalMainTopic.getParentTopic() != null) continue;
+
+                Topic clonedMainTopic = new Topic();
+                clonedMainTopic.setTitle(originalMainTopic.getTitle());
+                clonedMainTopic.setDifficulty(originalMainTopic.getDifficulty());
+                clonedMainTopic.setCompleted(false); // Reset completion status for the new plan!
+                clonedMainTopic.setUsers(currentUser);
+                clonedMainTopic.setSyllabus(clonedSyllabus);
+                clonedMainTopic.setSequenceOrder(originalMainTopic.getSequenceOrder());
+                clonedMainTopic.setSubTopics(new ArrayList<>());
+
+                if (originalMainTopic.getSubTopics() != null) {
+                    for (Topic originalSubTopic : originalMainTopic.getSubTopics()) {
+                        Topic clonedSubTopic = new Topic();
+                        clonedSubTopic.setTitle(originalSubTopic.getTitle());
+                        clonedSubTopic.setDifficulty(originalSubTopic.getDifficulty());
+                        clonedSubTopic.setCompleted(false);
+                        clonedSubTopic.setUsers(currentUser);
+                        clonedSubTopic.setSyllabus(clonedSyllabus);
+                        clonedSubTopic.setSequenceOrder(originalSubTopic.getSequenceOrder());
+                        clonedSubTopic.setResources(new ArrayList<>());
+
+                        if (originalSubTopic.getResources() != null) {
+                            for (Resources originalResource : originalSubTopic.getResources()) {
+                                Resources clonedResource = new Resources();
+                                clonedResource.setTitle(originalResource.getTitle());
+                                clonedResource.setUrl(originalResource.getUrl());
+                                clonedResource.setFallbackQueryUrl(originalResource.getFallbackQueryUrl());
+                                clonedResource.setType(originalResource.getType());
+
+                                clonedSubTopic.addResource(clonedResource);
+                            }
+                        }
+                        clonedMainTopic.addSubTopic(clonedSubTopic);
+                    }
+                }
+                clonedSyllabus.getTopics().add(clonedMainTopic);
+            }
+        }
+        return clonedSyllabus;
+    }
+
     private List<Syllabus> extractAndSaveSyllabuses(String combinedSyllabusText, Users currentUser, List<String> pendingTitles, List<String> pendingHashes) {
         String prompt = """
             You are an expert curriculum parser and educational curator. Extract all topics and subtopics from the provided syllabus text.
@@ -287,6 +344,7 @@ public class ScheduleService {
                 syllabus.setContentHash(pendingHashes.get(index));
                 syllabus.setUser(currentUser);
                 syllabus.setTopics(new ArrayList<>());
+                syllabus.setForGeneral(false);
 
                 int order = 1;
 

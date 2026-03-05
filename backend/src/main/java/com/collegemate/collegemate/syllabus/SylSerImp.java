@@ -57,13 +57,14 @@ public class SylSerImp {
         Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
         String getHex = calculateSHA256(syllabusText);
-        var getUser = syllabusRepo.findByUserAndContentHash(currentUser, getHex);
+
+        var getUser = syllabusRepo.findFirstByUserAndContentHashAndIsForGeneralTrue(currentUser, getHex);
 
         if(getUser.isPresent()) {
-            System.out.println("FOUND DUPLICATE");
+            System.out.println("FOUND DUPLICATE MASTER COPY");
             return getUser.get();
         } else {
-            System.out.println("NO DUP");
+            System.out.println("NO DUP FOUND");
         }
 
         String prompt = """
@@ -130,6 +131,7 @@ public class SylSerImp {
             syllabus.setTitle(parsedData.getSyllabusTitle());
             syllabus.setUser(currentUser);
             syllabus.setContentHash(getHex);
+            syllabus.setForGeneral(true);
 
             int order = 1;
 
@@ -202,8 +204,7 @@ public class SylSerImp {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Users currentuser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
 
-
-        List<Syllabus> syllabuses = syllabusRepo.findByUser(currentuser);
+        List<Syllabus> syllabuses = syllabusRepo.findByUserAndIsForGeneralTrue(currentuser);
 
         return syllabuses.stream().map(syllabus -> {
             Long id = syllabus.getId();

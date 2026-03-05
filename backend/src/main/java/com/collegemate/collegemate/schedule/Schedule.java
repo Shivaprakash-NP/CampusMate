@@ -23,6 +23,9 @@ public class Schedule {
     private Long id;
 
     @Column(nullable = false)
+    private String Title;
+
+    @Column(nullable = false)
     private LocalDate startDate;
 
     @Column(nullable = false)

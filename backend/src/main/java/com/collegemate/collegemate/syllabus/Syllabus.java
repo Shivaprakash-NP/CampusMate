@@ -38,4 +38,7 @@ public class Syllabus {
     @Column(name = "content_hash")
     @JsonIgnore
     private String contentHash;
+
+    @Column(name = "is_for_general", nullable = false)
+    private boolean isForGeneral;
 }
