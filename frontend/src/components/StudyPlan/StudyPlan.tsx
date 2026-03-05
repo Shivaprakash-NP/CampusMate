@@ -1,14 +1,30 @@
 import { useState } from "react"
-import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight } from "lucide-react"
+import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft } from "lucide-react"
 import Navbar from "../Navbar"
 import { CAMPUSMATE_PLAN } from "@/shared/generated-plan"
 import CalendarView from "./CalendarView"
 
-const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void }) => (
+// Expanded props to accept dynamic backend data and routing controls
+interface StudyPlanProps {
+  planSummary?: any;
+  planData?: any;
+  onBack?: () => void;
+}
+
+const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void, onBack?: () => void, title?: string }) => (
   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-zinc-800/60">
     <div className="flex flex-col gap-1.5">
+      {onBack && (
+        <button 
+          onClick={onBack} 
+          className="flex items-center text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors w-fit mb-3"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> 
+          Back to Plans
+        </button>
+      )}
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">
-        Study Plan
+        {title || "Study Plan"}
       </h1>
       <p className="text-sm text-zinc-400">
         Your personalized study roadmap
@@ -19,8 +35,8 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
       <button
         onClick={() => setView('text')}
         className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'text'
-          ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-          : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
+            : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
           }`}
       >
         <LayoutList className="size-4" />
@@ -30,8 +46,8 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
       <button
         onClick={() => setView('calendar')}
         className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'calendar'
-          ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-          : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
+            : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
           }`}
       >
         <Calendar className="size-4" />
@@ -41,7 +57,7 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
   </div>
 )
 
-const PlanOverview = () => {
+const PlanOverview = ({ title }: { title?: string }) => {
   const completedDays = 42
   const totalDays = 65
   const percentage = Math.round((completedDays / totalDays) * 100)
@@ -58,12 +74,11 @@ const PlanOverview = () => {
               Active Plan
             </span>
             <span className="text-lg font-medium tracking-tight text-zinc-100">
-              Semester Final Prep
+              {title || "Semester Final Prep"}
             </span>
           </div>
         </div>
 
-        {/* Minimalist Data Points */}
         <div className="flex flex-wrap items-center gap-6 md:gap-10">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-zinc-500">
@@ -89,7 +104,6 @@ const PlanOverview = () => {
         </div>
       </div>
 
-      {/* Integrated sleek progress bar */}
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-zinc-300">Overall Progress</span>
@@ -224,31 +238,39 @@ const UpcomingSchedule = () => {
   )
 }
 
-const StudyPlan = () => {
+const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   const [view, setView] = useState<'text' | 'calendar'>('text')
 
   return (
-    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-purple-500/30 flex flex-col">
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col">
 
-      {/* Sticky Edge-to-Edge Navbar */}
-      <div className="sticky top-0 z-40 w-full">
-        <Navbar />
-      </div>
+      {/* Conditionally hide the Navbar if this is rendered inside the StudyPlans router to prevent duplication */}
+      {!onBack && (
+        <div className="sticky top-0 z-40 w-full">
+          <Navbar />
+        </div>
+      )}
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
 
-        <StudyPlanHeader view={view} setView={setView} />
+        <StudyPlanHeader 
+          view={view} 
+          setView={setView} 
+          onBack={onBack} 
+          title={planSummary?.title} 
+        />
 
         <div className="w-full">
           {view === 'text' ? (
             <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out">
-              <PlanOverview />
+              <PlanOverview title={planSummary?.title} />
               <TodaysFocus />
               <UpcomingSchedule />
             </div>
           ) : (
             <div className="w-full rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-2 sm:p-6 shadow-sm backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 ease-out">
-              <CalendarView planData={CAMPUSMATE_PLAN} />
+              {/* Passes dynamic backend data. Falls back to default if data is missing */}
+              <CalendarView planData={planData || CAMPUSMATE_PLAN} />
             </div>
           )}
         </div>

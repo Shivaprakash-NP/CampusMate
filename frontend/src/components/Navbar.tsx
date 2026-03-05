@@ -32,11 +32,11 @@ const Navbar = () => {
             CampusMate
           </span>
           {/* Electric Purple Accent Dot (Desktop) */}
-          <span className="hidden h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)] sm:block" />
+          <span className="hidden h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(168,85,247,0.6)] sm:block" />
 
           {/* Mobile Minimalist Logo */}
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 sm:hidden shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+            <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
           </div>
         </div>
 
