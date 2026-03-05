@@ -11,7 +11,6 @@ import com.collegemate.collegemate.syllabus.SyllabusRepo;
 import com.collegemate.collegemate.syllabus.dto.SyllabusResponseDto;
 import com.collegemate.collegemate.syllabus.dto.TopicResponseDto;
 import com.collegemate.collegemate.topic.Topic;
-import com.collegemate.collegemate.topic.TopicRepository;
 import com.collegemate.collegemate.user.UserRepository;
 import com.collegemate.collegemate.user.Users;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -51,7 +50,7 @@ public class ScheduleService {
             throw new IllegalArgumentException("No portions provided to generate a schedule.");
         }
 
-        List<Syllabus> finalSyllabuses = new ArrayList<>();
+        Map<String, Syllabus> titleToSyllabusMap = new HashMap<>();
         StringBuilder combinedSyllabusText = new StringBuilder();
 
         List<String> pendingTitles = new ArrayList<>();
@@ -67,7 +66,8 @@ public class ScheduleService {
 
             if (existingSyllabus.isPresent()) {
                 System.out.println("FOUND DUPLICATE IN DB FOR: " + subjectTitle);
-                finalSyllabuses.add(existingSyllabus.get());
+                // Immediately map the exact user title to the found database object
+                titleToSyllabusMap.put(subjectTitle, existingSyllabus.get());
             } else {
                 System.out.println("NO DUP, PREPARING FOR AI: " + subjectTitle);
                 combinedSyllabusText.append("BEGIN SYLLABUS TITLE: ").append(subjectTitle).append("\n");
@@ -82,7 +82,10 @@ public class ScheduleService {
 
         if (needsAiCall) {
             List<Syllabus> newSyllabuses = extractAndSaveSyllabuses(combinedSyllabusText.toString(), currentUser, pendingTitles, pendingHashes);
-            finalSyllabuses.addAll(newSyllabuses);
+            // Map the newly generated AI syllabuses back to their exact titles
+            for (int i = 0; i < newSyllabuses.size(); i++) {
+                titleToSyllabusMap.put(pendingTitles.get(i), newSyllabuses.get(i));
+            }
         }
 
         Schedule schedule = new Schedule();
@@ -96,10 +99,11 @@ public class ScheduleService {
         for (ScheduleGenerateRequest.PortionLimit portion : request.getPortions()) {
             String targetTitle = portion.getTitle();
 
-            Syllabus matchedSyllabus = finalSyllabuses.stream()
-                    .filter(s -> s.getTitle().equalsIgnoreCase(targetTitle))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Failed to match syllabus with requested title: " + targetTitle));
+            Syllabus matchedSyllabus = titleToSyllabusMap.get(targetTitle);
+
+            if (matchedSyllabus == null) {
+                throw new RuntimeException("Failed to match syllabus with requested title: " + targetTitle);
+            }
 
             List<Topic> relevantMainTopics = matchedSyllabus.getTopics().stream()
                     .filter(t -> t.getSequenceOrder() <= portion.getEndSequenceOrder())
@@ -216,7 +220,6 @@ public class ScheduleService {
 
         return scheduleRepo.save(schedule);
     }
-
 
     private List<Syllabus> extractAndSaveSyllabuses(String combinedSyllabusText, Users currentUser, List<String> pendingTitles, List<String> pendingHashes) {
         String prompt = """
@@ -343,6 +346,7 @@ public class ScheduleService {
                                         try {
                                             resource.setType(Types.valueOf(resDto.getType().toUpperCase()));
                                         } catch (IllegalArgumentException | NullPointerException e) {
+                                            e.printStackTrace();
                                             resource.setType(Types.ARTICLE);
                                         }
 
@@ -365,6 +369,7 @@ public class ScheduleService {
             return syllabusRepo.saveAll(savedSyllabuses);
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to generate and save syllabuses: " + e.getMessage(), e);
         }
     }
@@ -374,6 +379,7 @@ public class ScheduleService {
         try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
             return new PDFTextStripper().getText(doc);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to read PDF file: " + file.getOriginalFilename(), e);
         }
     }
@@ -401,6 +407,7 @@ public class ScheduleService {
             }
             return hexString.toString();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Error calculating Hash", e);
         }
     }
@@ -411,6 +418,7 @@ public class ScheduleService {
             Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
             return scheduleRepo.findAllByUser(currentUser);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Error finding Schedule");
         }
     }
@@ -419,6 +427,7 @@ public class ScheduleService {
         try {
             return scheduleRepo.findById(id).orElseThrow(() -> new RuntimeException("Schedule Not Found"));
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Error finding Schedule");
         }
     }
