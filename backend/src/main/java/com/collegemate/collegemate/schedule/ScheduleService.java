@@ -38,7 +38,6 @@ public class ScheduleService {
     private final SyllabusRepo syllabusRepo;
     private final UserRepository userRepo;
     private final ObjectMapper objectMapper;
-    private final TopicRepository topicRepository;
     private final ScheduleRepo scheduleRepo;
 
     private final OEmbedValidationService oEmbedValidationService;
@@ -403,6 +402,24 @@ public class ScheduleService {
             return hexString.toString();
         } catch (Exception e) {
             throw new RuntimeException("Error calculating Hash", e);
+        }
+    }
+
+    public List<Schedule> getAllSchedules() {
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
+            return scheduleRepo.findAllByUser(currentUser);
+        } catch (Exception e) {
+            throw new RuntimeException("Error finding Schedule");
+        }
+    }
+
+    public Schedule getParticularSchedule(Long id) {
+        try {
+            return scheduleRepo.findById(id).orElseThrow(() -> new RuntimeException("Schedule Not Found"));
+        } catch (Exception e) {
+            throw new RuntimeException("Error finding Schedule");
         }
     }
 }

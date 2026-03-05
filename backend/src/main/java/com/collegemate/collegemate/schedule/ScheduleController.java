@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/schedule")
@@ -23,6 +25,26 @@ public class ScheduleController {
             return ResponseEntity.ok(finalSchedule);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error generating Schedule");
+        }
+    }
+
+    @GetMapping("/getSchedule")
+    public ResponseEntity<?> getAllSchedule() {
+        try {
+             List<Schedule> scheduleList = scheduleService.getAllSchedules();
+             return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error getting Schedules");
+        }
+    }
+
+    @GetMapping("/getSchedule/{Id}")
+    public ResponseEntity<?> getParticularSchedule(@PathVariable Long Id) {
+        try {
+            Schedule currectSchedule = scheduleService.getParticularSchedule(Id);
+            return ResponseEntity.ok(currectSchedule);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error getting Schedules");
         }
     }
 }
