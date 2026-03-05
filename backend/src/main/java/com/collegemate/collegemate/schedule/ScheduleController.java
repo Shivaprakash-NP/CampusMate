@@ -24,6 +24,7 @@ public class ScheduleController {
 
             return ResponseEntity.ok(finalSchedule);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error generating Schedule");
         }
     }
@@ -34,6 +35,7 @@ public class ScheduleController {
              List<Schedule> scheduleList = scheduleService.getAllSchedules();
              return ResponseEntity.ok(scheduleList);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error getting Schedules");
         }
     }
@@ -44,6 +46,7 @@ public class ScheduleController {
             Schedule currectSchedule = scheduleService.getParticularSchedule(Id);
             return ResponseEntity.ok(currectSchedule);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error getting Schedules");
         }
     }
