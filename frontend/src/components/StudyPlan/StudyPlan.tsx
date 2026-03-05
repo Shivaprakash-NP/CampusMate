@@ -1,14 +1,32 @@
-import { useState } from "react"
-import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight } from "lucide-react"
+"use client"
+
+import { useState, useMemo } from "react"
+import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft } from "lucide-react"
+import moment from "moment"
 import Navbar from "../Navbar"
-import { CAMPUSMATE_PLAN } from "@/shared/generated-plan"
+import { CAMPUSMATE_PLAN, type ExamStudyPlan } from "@/shared/generated-plan"
 import CalendarView from "./CalendarView"
 
-const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void }) => (
+interface StudyPlanProps {
+  planSummary?: any;
+  planData?: any; // This receives your backend data object
+  onBack?: () => void;
+}
+
+const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void, onBack?: () => void, title?: string }) => (
   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-zinc-800/60">
     <div className="flex flex-col gap-1.5">
+      {onBack && (
+        <button 
+          onClick={onBack} 
+          className="flex items-center text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors w-fit mb-3"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> 
+          Back to Plans
+        </button>
+      )}
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">
-        Study Plan
+        {title || "Study Plan"}
       </h1>
       <p className="text-sm text-zinc-400">
         Your personalized study roadmap
@@ -19,8 +37,8 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
       <button
         onClick={() => setView('text')}
         className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'text'
-          ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-          : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
+            : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
           }`}
       >
         <LayoutList className="size-4" />
@@ -30,8 +48,8 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
       <button
         onClick={() => setView('calendar')}
         className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'calendar'
-          ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
-          : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
+            : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
           }`}
       >
         <Calendar className="size-4" />
@@ -41,10 +59,15 @@ const StudyPlanHeader = ({ view, setView }: { view: 'text' | 'calendar', setView
   </div>
 )
 
-const PlanOverview = () => {
-  const completedDays = 42
-  const totalDays = 65
-  const percentage = Math.round((completedDays / totalDays) * 100)
+const PlanOverview = ({ title, startDate, endDate }: { title?: string, startDate?: string, endDate?: string }) => {
+  // Dynamically calculate progress based on backend dates
+  const start = startDate ? moment(startDate) : moment();
+  const end = endDate ? moment(endDate) : moment().add(30, 'days');
+  const today = moment();
+
+  const totalDays = Math.max(1, end.diff(start, 'days') + 1);
+  const completedDays = Math.max(0, today.diff(start, 'days'));
+  const percentage = Math.min(100, Math.max(0, Math.round((completedDays / totalDays) * 100)));
 
   return (
     <div className="flex flex-col gap-8 py-2">
@@ -58,38 +81,38 @@ const PlanOverview = () => {
               Active Plan
             </span>
             <span className="text-lg font-medium tracking-tight text-zinc-100">
-              Semester Final Prep
+              {title || "Semester Final Prep"}
             </span>
           </div>
         </div>
 
-        {/* Minimalist Data Points */}
         <div className="flex flex-wrap items-center gap-6 md:gap-10">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-zinc-500">
               <Calendar className="size-3.5" />
               <span className="text-[11px] font-medium uppercase tracking-wider">Timeline</span>
             </div>
-            <span className="text-sm font-medium text-zinc-200">Oct 15 - Dec 20</span>
+            <span className="text-sm font-medium text-zinc-200">
+              {start.format('MMM DD')} - {end.format('MMM DD')}
+            </span>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-zinc-500">
               <Clock className="size-3.5" />
               <span className="text-[11px] font-medium uppercase tracking-wider">Intensity</span>
             </div>
-            <span className="text-sm font-medium text-zinc-200">2.5 Hours / Day</span>
+            <span className="text-sm font-medium text-zinc-200">Adaptive</span>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-zinc-500">
               <Zap className="size-3.5" />
               <span className="text-[11px] font-medium uppercase tracking-wider">Focus Score</span>
             </div>
-            <span className="text-sm font-medium text-zinc-200">94%</span>
+            <span className="text-sm font-medium text-zinc-200">Optimal</span>
           </div>
         </div>
       </div>
 
-      {/* Integrated sleek progress bar */}
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-zinc-300">Overall Progress</span>
@@ -106,44 +129,41 @@ const PlanOverview = () => {
   )
 }
 
-const TodaysFocus = () => {
-  const items = [
-    {
-      topic: "Organic Chemistry: Molecular Orbitals",
-      sub: "Chapter 4 Review & Exercises",
-      status: "IN PROGRESS",
-      active: true,
-    },
-    {
-      topic: "Macroeconomics: Fiscal Policy",
-      sub: "Lecture Notes Synthesis",
-      status: "QUEUED",
-      active: false,
-    },
-    {
-      topic: "Spanish: Verb Conjugations",
-      sub: "Irregular Past Tense Drill",
-      status: "QUEUED",
-      active: false,
-    },
-  ]
+const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
+  const todayStr = moment().format('YYYY-MM-DD');
+  
+  // Find today's plan, if not found, jump to the first day of the schedule
+  let currentDayPlan = normalizedPlan.plan.find(p => p.date === todayStr);
+  if (!currentDayPlan && normalizedPlan.plan.length > 0) {
+    currentDayPlan = normalizedPlan.plan[0];
+  }
+
+  const items = currentDayPlan?.topics?.map((t, index) => ({
+    topic: t.subject,
+    sub: t.topic,
+    status: index === 0 ? "IN PROGRESS" : "QUEUED",
+    active: index === 0,
+  })) || [];
+
+  const displayDate = currentDayPlan ? moment(currentDayPlan.date).format('dddd, MMM D') : moment().format('dddd, MMM D');
+  const isActuallyToday = currentDayPlan?.date === todayStr;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-          Today's Focus
+          {isActuallyToday ? "Today's Focus" : "Next Focus"}
         </h2>
         <span className="text-xs font-medium text-zinc-500">
-          Tuesday, Oct 24
+          {displayDate}
         </span>
       </div>
 
       <div className="flex flex-col rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden divide-y divide-zinc-800/50">
-        {items.map(item => (
+        {items.length > 0 ? items.map(item => (
           <div
-            key={item.topic}
+            key={item.topic + item.sub}
             className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-colors hover:bg-zinc-800/40 cursor-pointer`}
           >
             <div className="flex items-start gap-3.5">
@@ -171,30 +191,20 @@ const TodaysFocus = () => {
               </button>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="p-6 text-center text-sm text-zinc-500 font-medium">
+            No topics scheduled for this date.
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-const UpcomingSchedule = () => {
-  const days = [
-    {
-      label: "Tomorrow",
-      title: "Microbio Intro",
-      detail: "Cell structures & lab prep",
-    },
-    {
-      label: "Wed",
-      title: "Calc Review",
-      detail: "Derivatives & Integration",
-    },
-    {
-      label: "Thu",
-      title: "Hist Seminar",
-      detail: "Reading summary due",
-    },
-  ]
+const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
+  const todayStr = moment().format('YYYY-MM-DD');
+  // Get upcoming days (excluding today) and take the next 3
+  const upcomingDays = normalizedPlan.plan.filter(p => p.date > todayStr).slice(0, 3);
 
   return (
     <div className="flex flex-col gap-4">
@@ -202,53 +212,107 @@ const UpcomingSchedule = () => {
         Looking Ahead
       </h2>
       <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-        {days.map(day => (
-          <div
-            key={day.label}
-            className="group flex flex-col gap-3 p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/50 transition-colors cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                {day.label}
-              </span>
-              <ArrowRight className="size-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
+        {upcomingDays.length > 0 ? upcomingDays.map((day) => {
+          const displayLabel = moment(day.date).calendar(null, {
+            nextDay: '[Tomorrow]',
+            nextWeek: 'ddd',
+            sameElse: 'MMM D'
+          });
+          const firstTopic = day.topics?.[0];
+
+          return (
+            <div
+              key={day.date}
+              className="group flex flex-col gap-3 p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                  {displayLabel}
+                </span>
+                <ArrowRight className="size-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors">
+                  {firstTopic?.subject || "Study Session"}
+                </span>
+                <span className="text-xs text-zinc-500 line-clamp-1">
+                  {firstTopic?.topic || "Assigned portions"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors">{day.title}</span>
-              <span className="text-xs text-zinc-500 line-clamp-1">{day.detail}</span>
-            </div>
-          </div>
-        ))}
+          )
+        }) : (
+           <div className="col-span-3 p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 text-center text-zinc-500 text-sm">
+             No upcoming schedules found.
+           </div>
+        )}
       </div>
     </div>
   )
 }
 
-const StudyPlan = () => {
+const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   const [view, setView] = useState<'text' | 'calendar'>('text')
 
-  return (
-    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-purple-500/30 flex flex-col">
+  // Adapter: Convert the backend schedulePerDayList object into the ExamStudyPlan interface
+  const normalizedPlanData: ExamStudyPlan = useMemo(() => {
+    if (!planData || !planData.schedulePerDayList) {
+      return CAMPUSMATE_PLAN; // Fallback to dummy data if not available yet
+    }
 
-      {/* Sticky Edge-to-Edge Navbar */}
-      <div className="sticky top-0 z-40 w-full">
-        <Navbar />
-      </div>
+    // Fix: Provide the missing required fields for the ExamStudyPlan interface
+    return {
+      exam_date: planData.endDate || "",
+      total_days: planData.schedulePerDayList.length,
+      daily_study_hours: 2, // Assuming a default of 2 hours, you can update this if your backend provides it
+      strategy: "Adaptive Backend Plan",
+      plan: planData.schedulePerDayList.map((dayItem: any, index: number) => ({
+        day: index + 1,
+        date: dayItem.date,
+        focus: "Daily Study Focus",
+        tasks: [],
+        topics: (dayItem.topics || []).map((t: any) => ({
+          subject: t.title || t.subjectName || t.subject || "Topic Focus", 
+          topic: t.description || t.topicName || t.topic || "Study Session",
+          estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
+          subtopics: t.subtopics || []
+        }))
+      }))
+    };
+  }, [planData]);
+
+  return (
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col">
+
+      {!onBack && (
+        <div className="sticky top-0 z-40 w-full">
+          <Navbar />
+        </div>
+      )}
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
 
-        <StudyPlanHeader view={view} setView={setView} />
+        <StudyPlanHeader 
+          view={view} 
+          setView={setView} 
+          onBack={onBack} 
+          title={planSummary?.title || planData?.title} 
+        />
 
         <div className="w-full">
           {view === 'text' ? (
             <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out">
-              <PlanOverview />
-              <TodaysFocus />
-              <UpcomingSchedule />
+              <PlanOverview 
+                 title={planSummary?.title || planData?.title} 
+                 startDate={planData?.startDate}
+                 endDate={planData?.endDate}
+              />
+              <TodaysFocus normalizedPlan={normalizedPlanData} />
+              <UpcomingSchedule normalizedPlan={normalizedPlanData} />
             </div>
           ) : (
             <div className="w-full rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-2 sm:p-6 shadow-sm backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 ease-out">
-              <CalendarView planData={CAMPUSMATE_PLAN} />
+              <CalendarView planData={normalizedPlanData} />
             </div>
           )}
         </div>

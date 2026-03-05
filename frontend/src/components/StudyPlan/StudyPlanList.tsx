@@ -1,22 +1,16 @@
 "use client"
 
 import React, { useState } from "react"
-import { Plus, MoreVertical, Trash2, Pencil, Calendar, LayoutTemplate, ArrowLeft } from "lucide-react"
+import { Plus, Trash2, LayoutTemplate, ArrowLeft } from "lucide-react"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import Navbar from "../Navbar" 
-import StudyPlanUpload from "./StudyPlanUpload" // Import your new component
+import StudyPlanUpload from "./StudyPlanUpload"
+import StudyPlanDetail from "./StudyPlan" // Import the detailed view
 
 // Shadcn Components
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -36,6 +30,7 @@ interface StudyPlanSummary {
   targetDate: string
   progress: number
   status: PlanStatus
+  fullData?: any // Stores backend response for the calendar
 }
 
 const INITIAL_PLANS: StudyPlanSummary[] = [
@@ -73,13 +68,15 @@ export default function StudyPlans() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newPlanName, setNewPlanName] = useState("")
   
-  // NEW: State to toggle between Dashboard and Upload Flow
+  // Navigation States
   const [isConfiguring, setIsConfiguring] = useState(false)
   const [activePlanTitle, setActivePlanTitle] = useState("")
+  const [activePlanId, setActivePlanId] = useState<string | null>(null) // Tracks detailed view
 
   // --- Handlers ---
   const handleDelete = (id: string) => {
     setPlans((prev) => prev.filter((plan) => plan.id !== id))
+    if (activePlanId === id) setActivePlanId(null)
   }
 
   const handleStartConfiguration = (e: React.FormEvent) => {
@@ -88,23 +85,25 @@ export default function StudyPlans() {
 
     setActivePlanTitle(newPlanName)
     setIsCreateModalOpen(false)
-    setIsConfiguring(true) // Switch to Upload View
+    setIsConfiguring(true) 
   }
 
   const handleFinalSubmit = (configData: any) => {
-    // This is called when StudyPlanUpload finishes
+    // Save the backend configuration to fullData
     const newPlan: StudyPlanSummary = {
       id: `plan-${Date.now()}`,
       title: activePlanTitle,
-      description: `${configData.numTests} tests configured`,
+      description: `Plan generated successfully`,
       targetDate: configData.examStartDate || "TBD",
       progress: 0,
       status: "active",
+      fullData: configData 
     }
 
     setPlans([newPlan, ...plans])
     setIsConfiguring(false)
     setNewPlanName("")
+    setActivePlanId(newPlan.id) // Automatically open the new plan
   }
 
   const StatusIndicator = ({ status }: { status: PlanStatus }) => {
@@ -120,8 +119,21 @@ export default function StudyPlans() {
     )
   }
 
+  // --- ROUTING RENDERER ---
+  // If a plan is selected, render the detailed view component entirely.
+  if (activePlanId) {
+    const selectedPlan = plans.find((p) => p.id === activePlanId)
+    return (
+      <StudyPlanDetail 
+        planSummary={selectedPlan} 
+        planData={selectedPlan?.fullData} 
+        onBack={() => setActivePlanId(null)} 
+      />
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-cyan-500/30 text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-zinc-800 text-zinc-100 flex flex-col">
       <div className="sticky top-0 z-40 w-full">
         <Navbar />
       </div>
@@ -141,21 +153,18 @@ export default function StudyPlans() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIsConfiguring(false)}
-                className="text-zinc-400 hover:text-zinc-100 mb-4"
+                className="text-zinc-400 hover:text-zinc-100 mb-4 transition-colors"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Plans
               </Button>
             </div>
-            {/* Pass the title and a completion handler to your component. 
-                Ensure StudyPlanUpload calls onComplete when done.
-            */}
             <StudyPlanUpload 
               planTitle={activePlanTitle} 
               onComplete={handleFinalSubmit} 
             />
           </motion.div>
         ) : (
-          // DASHBOARD VIEW
+          // DASHBOARD LIST VIEW
           <motion.main
             key="list-view"
             initial={{ opacity: 0 }}
@@ -163,7 +172,6 @@ export default function StudyPlans() {
             exit={{ opacity: 0 }}
             className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10"
           >
-            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
               <div className="flex flex-col gap-1.5">
                 <h1 className="text-2xl md:text-3xl font-semibold text-zinc-100 tracking-tight">Study Plans</h1>
@@ -173,14 +181,13 @@ export default function StudyPlans() {
               <Button
                 size="sm"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-9 bg-zinc-300 text-zinc-950 hover:bg-zinc-200 font-semibold transition-all"
+                className="h-9 bg-zinc-200 text-zinc-950 hover:bg-white font-semibold shadow-sm transition-all"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 New Plan
               </Button>
             </div>
 
-            {/* List Section */}
             <div className="flex flex-col gap-4">
               <div className="hidden md:grid grid-cols-[1fr_120px_100px_160px_40px] gap-6 px-5 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
                 <span>Plan Name</span>
@@ -212,11 +219,11 @@ export default function StudyPlans() {
                           initial="hidden"
                           animate="show"
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="group flex flex-col md:grid md:grid-cols-[1fr_120px_100px_160px_40px] md:items-center gap-4 md:gap-6 py-4 px-4 md:px-5 hover:bg-zinc-800/40 transition-colors"
+                          onClick={() => setActivePlanId(plan.id)}
+                          className="group flex flex-col md:grid md:grid-cols-[1fr_120px_100px_160px_40px] md:items-center gap-4 md:gap-6 py-4 px-4 md:px-5 hover:bg-zinc-800/40 transition-colors cursor-pointer"
                         >
-                          {/* ... Item Content (Same as your original code) ... */}
                           <div className="flex min-w-0 flex-col gap-1">
-                            <h3 className="text-sm font-medium text-zinc-200 group-hover:text-cyan-400 transition-colors truncate">{plan.title}</h3>
+                            <h3 className="text-sm font-medium text-zinc-200 group-hover:text-zinc-50 transition-colors truncate">{plan.title}</h3>
                             <p className="text-[13px] text-zinc-500 truncate">{plan.description}</p>
                           </div>
                           <div className="text-[13px] text-zinc-500">{plan.targetDate}</div>
@@ -226,13 +233,21 @@ export default function StudyPlans() {
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${plan.progress}%` }}
-                                className="h-full bg-zinc-100" 
+                                className="h-full bg-zinc-200" 
                               />
                             </div>
                             <span className="text-[12px] text-zinc-500">{plan.progress}%</span>
                           </div>
                           <div className="flex justify-end">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500" onClick={() => handleDelete(plan.id)}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" 
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent opening the plan when deleting
+                                handleDelete(plan.id);
+                              }}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -247,27 +262,26 @@ export default function StudyPlans() {
         )}
       </AnimatePresence>
 
-      {/* CREATE PLAN NAME MODAL */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100">
+        <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100 rounded-xl">
           <DialogHeader>
             <DialogTitle>Create New Plan</DialogTitle>
             <DialogDescription className="text-zinc-400">Step 1: Name your study roadmap.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleStartConfiguration} className="space-y-6 pt-4">
             <div className="space-y-2.5">
-              <Label htmlFor="name">Plan Name</Label>
+              <Label htmlFor="name" className="text-zinc-300">Plan Name</Label>
               <Input
                 id="name"
                 placeholder="e.g. Semester Finals"
                 value={newPlanName}
                 onChange={(e) => setNewPlanName(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 focus-visible:ring-cyan-500"
+                className="bg-zinc-900 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-600 transition-all"
                 autoFocus
               />
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={!newPlanName.trim()} className="bg-cyan-500 hover:bg-cyan-600 text-white w-full">
+              <Button type="submit" disabled={!newPlanName.trim()} className="bg-zinc-100 hover:bg-white text-zinc-950 font-semibold w-full transition-colors">
                 Continue to Setup
               </Button>
             </DialogFooter>
