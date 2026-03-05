@@ -10,6 +10,7 @@ import com.collegemate.collegemate.user.Users;
 
 @Repository
 public interface SyllabusRepo extends JpaRepository<Syllabus, Long> {
-    public List<Syllabus> findByUser(Users user);
-    public Optional<Syllabus> findByUserAndContentHash(Users user, String contentHash);
+    List<Syllabus> findByUser(Users user);
+    Optional<Syllabus> findFirstByUserAndContentHashAndIsForGeneralTrue(Users user, String contentHash);
+    List<Syllabus> findByUserAndIsForGeneralTrue(Users user);
 }
