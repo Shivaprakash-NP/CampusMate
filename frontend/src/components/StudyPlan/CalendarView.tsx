@@ -24,7 +24,18 @@ interface CalendarViewProps {
 
 const CalendarView = ({ planData }: CalendarViewProps) => {
   const [view, setView] = useState<View>(Views.MONTH)
-  const [date, setDate] = useState(new Date(2026, 2, 5))
+  
+  // DYNAMIC INITIAL DATE: Opens calendar to the month of the first item
+  const initialDate = useMemo(() => {
+    if (planData?.plan?.length > 0) {
+       const todayStr = moment().format('YYYY-MM-DD');
+       const hasToday = planData.plan.some(p => p.date === todayStr);
+       return hasToday ? new Date() : new Date(planData.plan[0].date);
+    }
+    return new Date();
+  }, [planData]);
+
+  const [date, setDate] = useState(initialDate)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [dailyTasks, setDailyTasks] = useState<Record<string, Task[]>>({})
@@ -73,7 +84,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
   const handleApplyScheduleChanges = (modifiedEvents: CalendarEvent[]) => {
     const topicsByDate: Record<string, any[]> = {};
 
-    // Group dragged topics by their new dates
     modifiedEvents.forEach(event => {
       const newDateKey = moment(event.start).format('YYYY-MM-DD');
       if (!topicsByDate[newDateKey]) {
@@ -82,7 +92,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
       topicsByDate[newDateKey].push(event.resource);
     });
 
-    // Rebuild the planData structure
     const updatedPlanArray = Object.keys(topicsByDate).map((dateStr, index) => {
       const existingDay = currentPlanData.plan.find(p => p.date === dateStr);
       const computedFocus = topicsByDate[dateStr][0]?.subject || "Custom Focus";
@@ -94,7 +103,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
           topics: topicsByDate[dateStr],
         };
       } else {
-        // Fallback for brand new date
         return {
           day: currentPlanData.plan.length + index + 1,
           date: dateStr,
@@ -105,7 +113,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
       }
     });
 
-    // Sort chronologically
     updatedPlanArray.sort((a, b) => moment(a.date).valueOf() - moment(b.date).valueOf());
 
     setCurrentPlanData(prev => ({
@@ -114,7 +121,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     }));
   }
 
-  // Semantic Coloring mapped to Premium SaaS Theme (Zinc + Purple/Emerald)
+  // Semantic Coloring
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || '';
     let color = '#a1a1aa'; // zinc-400
@@ -168,14 +175,9 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
   return (
     <>
       <div className="w-full flex flex-col lg:flex-row h-[600px] overflow-hidden relative">
-
-        {/* Calendar Main Area */}
         <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:pr-6 lg:border-r border-zinc-800/60' : ''}`}>
-
-          {/* Header Controls */}
+          
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5 w-full">
-
-            {/* LEFT: View Toggles (Segmented Control) */}
             <div className="w-full sm:w-auto flex justify-start order-2 sm:order-1">
               <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-full sm:w-fit">
                 <button
@@ -193,7 +195,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
               </div>
             </div>
 
-            {/* CENTER: Month & Navigation Arrows */}
             <div className="flex-1 flex justify-center items-center gap-3 order-1 sm:order-2 w-full sm:w-auto">
               <button
                 onClick={() => setDate(moment(date).subtract(1, view as any).toDate())}
@@ -201,11 +202,9 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
               >
                 <ChevronLeft size={18} />
               </button>
-
               <span className="text-[15px] font-semibold tracking-tight text-zinc-100 min-w-[140px] text-center">
                 {moment(date).format('MMMM YYYY')}
               </span>
-
               <button
                 onClick={() => setDate(moment(date).add(1, view as any).toDate())}
                 className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
@@ -214,7 +213,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
               </button>
             </div>
 
-            {/* RIGHT: Edit Plan Button */}
             <div className="w-full sm:w-auto flex justify-end order-3">
               <button
                 onClick={() => setIsEditModalOpen(true)}
@@ -226,7 +224,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
             </div>
           </div>
 
-          {/* Calendar Grid */}
           <div className="flex-1 overflow-hidden rounded-lg border border-zinc-800/40 bg-zinc-950/20">
             <Calendar
               localizer={localizer}
@@ -248,7 +245,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
           </div>
         </div>
 
-        {/* SIDEBAR RENDER */}
         {isSidebarOpen && selectedDate && (
           <div className="w-full lg:w-80 shrink-0 lg:pl-6 mt-6 lg:mt-0 animate-in slide-in-from-right-4 fade-in duration-300">
             <TaskSidebar
@@ -267,7 +263,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
           </div>
         )}
 
-        {/* CSS STYLES FOR REACT-BIG-CALENDAR */}
         <style dangerouslySetInnerHTML={{
           __html: `
           .rbc-calendar { color: #f4f4f5; font-family: inherit; }
