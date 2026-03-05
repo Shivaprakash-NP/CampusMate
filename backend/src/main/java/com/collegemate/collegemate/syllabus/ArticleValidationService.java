@@ -1,21 +1,32 @@
 package com.collegemate.collegemate.syllabus;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
+
 @Service
-@RequiredArgsConstructor
 public class ArticleValidationService {
+
     private final RestTemplate restTemplate;
 
+    // OPTIMIZATION 1: Constructor Injection with 3-Second Timeouts
+    public ArticleValidationService(RestTemplateBuilder restTemplateBuilder) {
+        this.restTemplate = restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(3))
+                .build();
+    }
+
+    // OPTIMIZATION 2: Cache successful validations
+    @Cacheable(value = "articleValidation", key = "#targetUrl", unless = "#result == false")
     public boolean isArticleUrlValid(String targetUrl) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -33,17 +44,11 @@ public class ArticleValidationService {
 
             return response.getStatusCode().is2xxSuccessful();
 
-        } catch (HttpClientErrorException e) {
-            System.err.println("Article URL is invalid (Client Error). Status: " + e.getStatusCode() + " - URL: " + targetUrl);
-            return false;
-        } catch (HttpServerErrorException e) {
-            System.err.println("Article server is currently down. Status: " + e.getStatusCode() + " - URL: " + targetUrl);
-            return false;
-        } catch (ResourceAccessException e) {
-            System.err.println("Could not connect to the article server (Timeout/DNS). URL: " + targetUrl);
+        } catch (RestClientException e) {
+            // OPTIMIZATION 3: Removed verbose error logging.
+            // Catches Timeouts, DNS errors, 404s, and 500s silently and triggers fallback.
             return false;
         } catch (Exception e) {
-            System.err.println("Unexpected error validating article URL: " + e.getMessage());
             return false;
         }
     }

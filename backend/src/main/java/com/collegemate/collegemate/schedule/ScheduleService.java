@@ -42,9 +42,13 @@ public class ScheduleService {
     private final OEmbedValidationService oEmbedValidationService;
     private final ArticleValidationService articleValidationService;
 
-    public Schedule generateSchedule(ScheduleGenerateRequest request) {
+    private Users getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
+        return userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
+    }
+
+    public Schedule generateSchedule(ScheduleGenerateRequest request) {
+        Users currentUser = getCurrentUser();
 
         if (request.getPortions() == null || request.getPortions().isEmpty()) {
             throw new IllegalArgumentException("No portions provided to generate a schedule.");
@@ -59,20 +63,16 @@ public class ScheduleService {
 
         for (ScheduleGenerateRequest.PortionLimit portion : request.getPortions()) {
             String subjectTitle = portion.getTitle();
-            String extractedText = extractTextFromPdf(portion.getSyllabusFile());
+            String extractedText = extractTextFromFile(portion.getSyllabusFile());
             String contentHash = calculateSHA256(extractedText);
 
             Optional<Syllabus> existingSyllabus = syllabusRepo.findFirstByUserAndContentHashAndIsForGeneralTrue(currentUser, contentHash);
 
             if (existingSyllabus.isPresent()) {
                 System.out.println("FOUND DUPLICATE IN DB FOR: " + subjectTitle + " -> CLONING DATA");
-
                 Syllabus clonedSyllabus = cloneSyllabusEntity(existingSyllabus.get(), subjectTitle, currentUser);
-
                 Syllabus savedClone = syllabusRepo.save(clonedSyllabus);
-
                 titleToSyllabusMap.put(subjectTitle, savedClone);
-
             } else {
                 System.out.println("NO DUP, PREPARING FOR AI: " + subjectTitle);
                 combinedSyllabusText.append("BEGIN SYLLABUS TITLE: ").append(subjectTitle).append("\n");
@@ -103,7 +103,6 @@ public class ScheduleService {
 
         for (ScheduleGenerateRequest.PortionLimit portion : request.getPortions()) {
             String targetTitle = portion.getTitle();
-
             Syllabus matchedSyllabus = titleToSyllabusMap.get(targetTitle);
 
             if (matchedSyllabus == null) {
@@ -121,28 +120,32 @@ public class ScheduleService {
                 }
             }
 
+            relevantSubTopics.sort(Comparator.comparing(Topic::getSequenceOrder));
+
             if (portion.getPyq() != null && !portion.getPyq().isEmpty()) {
                 StringBuilder pyqTextBuilder = new StringBuilder();
                 for (MultipartFile pyqFile : portion.getPyq()) {
-                    pyqTextBuilder.append(extractTextFromPdf(pyqFile).toLowerCase());
+                    pyqTextBuilder.append(extractTextFromFile(pyqFile).toLowerCase());
                 }
                 String pyqText = pyqTextBuilder.toString();
 
                 Map<Topic, Integer> subTopicWeights = new HashMap<>();
-
                 for (Topic subTopic : relevantSubTopics) {
                     int mentions = countMentions(pyqText, subTopic.getTitle().toLowerCase());
-
                     if (subTopic.getParentTopic() != null) {
                         mentions += (countMentions(pyqText, subTopic.getParentTopic().getTitle().toLowerCase()) / 2);
                     }
-
                     subTopicWeights.put(subTopic, mentions);
                 }
 
-                relevantSubTopics.sort((t1, t2) -> subTopicWeights.get(t2).compareTo(subTopicWeights.get(t1)));
+                relevantSubTopics.sort((t1, t2) -> {
+                    int weightCompare = subTopicWeights.get(t2).compareTo(subTopicWeights.get(t1));
+                    if (weightCompare == 0) {
+                        return t1.getSequenceOrder().compareTo(t2.getSequenceOrder());
+                    }
+                    return weightCompare;
+                });
             }
-
             prioritizedTopics.addAll(relevantSubTopics);
         }
 
@@ -174,13 +177,11 @@ public class ScheduleService {
                     scheduleDay.getTopics().add(subTopicToAssign);
                     topicIndex++;
                 }
-
                 schedule.getSchedulePerDayList().add(scheduleDay);
             }
         }
         else {
             int dayIndex = 0;
-
             for (int i = 0; i < totalSubTopics; i++) {
                 SchedulePerDay scheduleDay = new SchedulePerDay();
                 scheduleDay.setDate(request.getStartDate().plusDays(dayIndex));
@@ -203,7 +204,6 @@ public class ScheduleService {
                 scheduleDay.setTopics(new ArrayList<>());
 
                 Topic originalSubTopic = prioritizedTopics.get(revisionIndex % totalSubTopics);
-
                 Topic revisionTopic = new Topic();
                 revisionTopic.setTitle("Revision: " + originalSubTopic.getTitle());
                 revisionTopic.setDifficulty(originalSubTopic.getDifficulty());
@@ -223,7 +223,13 @@ public class ScheduleService {
             }
         }
 
-        return scheduleRepo.save(schedule);
+        Schedule savedSchedule = scheduleRepo.save(schedule);
+
+        if (savedSchedule.getSchedulePerDayList() != null) {
+            savedSchedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+        }
+
+        return savedSchedule;
     }
 
     private Syllabus cloneSyllabusEntity(Syllabus original, String newTitle, Users currentUser) {
@@ -241,7 +247,7 @@ public class ScheduleService {
                 Topic clonedMainTopic = new Topic();
                 clonedMainTopic.setTitle(originalMainTopic.getTitle());
                 clonedMainTopic.setDifficulty(originalMainTopic.getDifficulty());
-                clonedMainTopic.setCompleted(false); // Reset completion status for the new plan!
+                clonedMainTopic.setCompleted(false);
                 clonedMainTopic.setUsers(currentUser);
                 clonedMainTopic.setSyllabus(clonedSyllabus);
                 clonedMainTopic.setSequenceOrder(originalMainTopic.getSequenceOrder());
@@ -320,10 +326,12 @@ public class ScheduleService {
         try {
             String jsonResponse = chatClient.prompt().user(prompt).call().content();
 
-            if (jsonResponse != null && jsonResponse.startsWith("```json")) {
-                jsonResponse = jsonResponse.substring(7, jsonResponse.length() - 3).trim();
-            } else if (jsonResponse != null && jsonResponse.startsWith("```")) {
-                jsonResponse = jsonResponse.substring(3, jsonResponse.length() - 3).trim();
+            int startIndex = jsonResponse.indexOf("[");
+            int endIndex = jsonResponse.lastIndexOf("]");
+            if (startIndex != -1 && endIndex != -1) {
+                jsonResponse = jsonResponse.substring(startIndex, endIndex + 1);
+            } else {
+                throw new RuntimeException("Could not extract valid JSON array from AI response.");
             }
 
             List<SyllabusResponseDto> parsedDataList = objectMapper.readValue(
@@ -334,12 +342,9 @@ public class ScheduleService {
             int index = 0;
 
             for (SyllabusResponseDto parsedData : parsedDataList) {
-                if (index >= pendingTitles.size()) {
-                    break;
-                }
+                if (index >= pendingTitles.size()) break;
 
                 Syllabus syllabus = new Syllabus();
-
                 syllabus.setTitle(pendingTitles.get(index));
                 syllabus.setContentHash(pendingHashes.get(index));
                 syllabus.setUser(currentUser);
@@ -376,15 +381,16 @@ public class ScheduleService {
                                         String rawURL = resDto.getUrl();
                                         String rawfallBackURL = resDto.getFallbackQueryUrl();
 
+                                        // Clean Markdown Links if hallucinated by AI
                                         if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
                                             rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
                                         }
-
                                         if(rawfallBackURL != null && rawfallBackURL.contains("](") && rawfallBackURL.endsWith(")")) {
                                             rawfallBackURL = rawfallBackURL.substring(rawfallBackURL.indexOf("](")+2, rawfallBackURL.length()-1);
                                         }
 
-                                        resource.setFallbackQueryUrl(rawfallBackURL != null ? rawfallBackURL : "https://www.google.com/search?q=" + resDto.getTitle());
+                                        String safeFallback = (rawfallBackURL != null) ? rawfallBackURL : "https://www.google.com/search?q=" + resDto.getTitle();
+                                        resource.setFallbackQueryUrl(safeFallback);
 
                                         boolean isValid = false;
                                         if (rawURL != null) {
@@ -395,16 +401,15 @@ public class ScheduleService {
                                             }
                                         }
 
-                                        if(isValid) {
-                                            resource.setUrl(rawURL);
-                                        } else {
-                                            resource.setUrl(rawfallBackURL != null ? rawfallBackURL : "https://www.google.com/search?q=" + resDto.getTitle());
-                                        }
+                                        resource.setUrl(isValid ? rawURL : safeFallback);
 
                                         try {
-                                            resource.setType(Types.valueOf(resDto.getType().toUpperCase()));
+                                            if(resDto.getType() != null) {
+                                                resource.setType(Types.valueOf(resDto.getType().toUpperCase()));
+                                            } else {
+                                                resource.setType(Types.ARTICLE);
+                                            }
                                         } catch (IllegalArgumentException | NullPointerException e) {
-                                            e.printStackTrace();
                                             resource.setType(Types.ARTICLE);
                                         }
 
@@ -432,13 +437,24 @@ public class ScheduleService {
         }
     }
 
-    private String extractTextFromPdf(MultipartFile file) {
+    private String extractTextFromFile(MultipartFile file) {
         if (file == null || file.isEmpty()) return "";
-        try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
-            return new PDFTextStripper().getText(doc);
+        try {
+            String contentType = file.getContentType();
+            String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+
+            if ((contentType != null && contentType.contains("pdf")) || filename.endsWith(".pdf")) {
+                try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
+                    return new PDFTextStripper().getText(doc);
+                }
+            } else if ((contentType != null && contentType.contains("text")) || filename.endsWith(".txt")) {
+                return new String(file.getBytes(), StandardCharsets.UTF_8);
+            } else {
+                return "Unsupported File Uploaded";
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Failed to read PDF file: " + file.getOriginalFilename(), e);
+            throw new RuntimeException("Failed to read file: " + file.getOriginalFilename(), e);
         }
     }
 
@@ -465,27 +481,37 @@ public class ScheduleService {
             }
             return hexString.toString();
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("Error calculating Hash", e);
         }
     }
 
     public List<Schedule> getAllSchedules() {
         try {
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            Users currentUser = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User Not Found"));
-            return scheduleRepo.findAllByUser(currentUser);
+            Users currentUser = getCurrentUser();
+            List<Schedule> schedules = scheduleRepo.findAllByUser(currentUser);
+
+            for (Schedule schedule : schedules) {
+                if (schedule.getSchedulePerDayList() != null) {
+                    schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+                }
+            }
+
+            return schedules;
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("Error finding Schedule");
         }
     }
 
     public Schedule getParticularSchedule(Long id) {
         try {
-            return scheduleRepo.findById(id).orElseThrow(() -> new RuntimeException("Schedule Not Found"));
+            Schedule schedule = scheduleRepo.findById(id).orElseThrow(() -> new RuntimeException("Schedule Not Found"));
+
+            if (schedule.getSchedulePerDayList() != null) {
+                schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+            }
+
+            return schedule;
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("Error finding Schedule");
         }
     }
