@@ -33,12 +33,7 @@ export default function ChatHeader({ setIsSidebarOpen, isFullScreen, setIsFullSc
       
       {/* Right side: Action Tools */}
       <div className="flex items-center gap-2 md:gap-3">
-        <button 
-          className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-all duration-200" 
-          title="Share chat"
-        >
-          <Share className="h-4 w-4" />
-        </button>
+        
         
         {/* Fullscreen Toggle */}
         <button 
