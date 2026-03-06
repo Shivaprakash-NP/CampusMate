@@ -520,4 +520,12 @@ public class ScheduleService {
             throw new RuntimeException("Error finding Schedule");
         }
     }
+
+    public void deletePlan(Long id) {
+        try {
+            scheduleRepo.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Error Deleting Your Plan");
+        }
+    }
 }
