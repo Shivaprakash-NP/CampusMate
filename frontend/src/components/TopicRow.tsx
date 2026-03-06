@@ -148,7 +148,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
           {/* Title */}
           <span
             className={`truncate text-sm tracking-tight transition-all duration-300 ${node.completed
-              ? "text-zinc-500 line-through decoration-zinc-700/50"
+              ? "text-zinc-500 decoration-zinc-700/50"
               : "text-zinc-200"
               }`}
             title={node.title}
