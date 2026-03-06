@@ -170,7 +170,7 @@ const TodaysFocus = ({
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className={`text-[13px] font-medium transition-colors ${isCompleted ? 'text-zinc-500' : 'text-zinc-100 group-hover:text-zinc-200'}`}>
+                      <span className={`text-[13px] font-medium transition-colors ${isCompleted ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-zinc-200'}`}>
                         {item.topic}
                       </span>
                       
@@ -181,7 +181,6 @@ const TodaysFocus = ({
                     </div>
                   </div>
 
-                  {/* RIGHT SIDE: Resource Icons always visible */}
                   <div className="flex items-center gap-2.5 self-end sm:self-auto ml-7 sm:ml-0">
                     {item.resources.length > 0 && (
                       <div className="flex items-center gap-2.5">
@@ -289,12 +288,19 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   const [view, setView] = useState<'text' | 'calendar'>('text')
   
   const [completedTopicIds, setCompletedTopicIds] = useState<Set<string>>(new Set())
+  
+  const [localPlanData, setLocalPlanData] = useState(planData)
 
-  // FIX 1: Only run initialization when the PLAN ID changes, preventing reference-bounce
   useEffect(() => {
-    if (planData && planData.schedulePerDayList) {
+    if (planData) {
+      setLocalPlanData(planData);
+    }
+  }, [planData?.id])
+
+  useEffect(() => {
+    if (localPlanData && localPlanData.schedulePerDayList) {
       const initialSet = new Set<string>();
-      planData.schedulePerDayList.forEach((dayItem: any) => {
+      localPlanData.schedulePerDayList.forEach((dayItem: any) => {
         dayItem.topics?.forEach((t: any) => {
           if (t.completed) {
             initialSet.add(String(t.id));
@@ -303,11 +309,9 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
       });
       setCompletedTopicIds(initialSet);
     }
-  }, [planData?.id]);
+  }, [localPlanData]);
 
-  // FIX 2: Correct HTTP Method (PATCH) & Headers added
   const toggleTopicCompletion = async (topicId: string) => {
-    // 1. Optimistic UI update (feels instant to the user)
     setCompletedTopicIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(topicId)) {
@@ -318,7 +322,6 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
       return newSet;
     });
 
-    // 2. Call backend endpoint
     try {
       let token = localStorage.getItem("accessToken") || "";
       if (!token) {
@@ -326,7 +329,6 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
         if (match) token = match[1];
       }
 
-      // Changed from POST to PATCH and added content-type JSON
       const response = await fetch(`http://localhost:8080/api/topics/${topicId}/toggle`, {
         method: "PATCH", 
         headers: {
@@ -340,8 +342,6 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
 
     } catch (error) {
       console.error("Error toggling topic:", error);
-      
-      // Revert optimistic update if API fails
       setCompletedTopicIds(prev => {
         const newSet = new Set(prev);
         if (newSet.has(topicId)) {
@@ -354,14 +354,103 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
     }
   }
 
+  const handleUpdatePlan = async (modifiedEvents: any[]) => {
+    try {
+        // 1. Deep clone the exact original rich data for UI use later
+        const updatedPayload = JSON.parse(JSON.stringify(localPlanData));
+
+        updatedPayload.schedulePerDayList.forEach((day: any) => {
+            day.topics = [];
+        });
+
+        const topicsByDate = new Map<string, any[]>();
+        modifiedEvents.forEach((ev: any) => {
+            const newDateStr = moment(ev.start).format('YYYY-MM-DD');
+            const rawTopic = ev.resource.rawTopic;
+            if (!topicsByDate.has(newDateStr)) {
+                topicsByDate.set(newDateStr, []);
+            }
+            topicsByDate.get(newDateStr)!.push(rawTopic);
+        });
+
+        const unassignedDates = Array.from(topicsByDate.keys());
+        unassignedDates.forEach(dateStr => {
+            let targetDay = updatedPayload.schedulePerDayList.find((d: any) => d.date === dateStr);
+            if (targetDay) {
+                targetDay.topics = topicsByDate.get(dateStr);
+                topicsByDate.delete(dateStr); 
+            }
+        });
+
+        const unusedDays = updatedPayload.schedulePerDayList.filter((d: any) => d.topics.length === 0);
+
+        Array.from(topicsByDate.keys()).forEach(dateStr => {
+            if (unusedDays.length > 0) {
+                let recycledDay = unusedDays.pop();
+                recycledDay.date = dateStr; 
+                recycledDay.topics = topicsByDate.get(dateStr);
+            } else {
+                const lastDay = updatedPayload.schedulePerDayList[updatedPayload.schedulePerDayList.length - 1];
+                // FIX FOR TS ERROR: guarantee an array using || []
+                lastDay.topics = [...lastDay.topics, ...(topicsByDate.get(dateStr) || [])];
+            }
+        });
+
+        updatedPayload.schedulePerDayList.sort((a: any, b: any) => moment(a.date).valueOf() - moment(b.date).valueOf());
+
+        // 2. Strip nested objects to bypass the Hibernate DataIntegrityViolationException on resources
+        const cleanPayload = {
+            id: updatedPayload.id,
+            title: updatedPayload.title,
+            startDate: updatedPayload.startDate,
+            endDate: updatedPayload.endDate,
+            schedulePerDayList: updatedPayload.schedulePerDayList.map((day: any) => ({
+                id: day.id,
+                date: day.date,
+                topics: (day.topics || []).map((t: any) => ({
+                    id: t.id // Send ONLY the ID to prevent Hibernate cascading NULLs to nested entities
+                }))
+            }))
+        };
+
+        let token = localStorage.getItem("accessToken") || "";
+        if (!token) {
+            const match = document.cookie.match(/(?:^|; )accessToken=([^;]*)/);
+            if (match) token = match[1];
+        }
+
+        const response = await fetch(`http://localhost:8080/api/schedule/update`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(cleanPayload), // Send strictly cleaned payload
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Server returned ${response.status}: ${errText}`);
+        }
+
+        // 3. FORCE UI TO USE OUR RICH DATA (Ignores shallow backend echo response to prevent disappearing elements)
+        setLocalPlanData(updatedPayload);
+
+    } catch (error) {
+        console.error("Update failed entirely:", error);
+        throw error; 
+    }
+  };
+
   const normalizedPlanData: ExamStudyPlan = useMemo(() => {
-    if (!planData || !planData.schedulePerDayList) {
+    if (!localPlanData || !localPlanData.schedulePerDayList) {
       return { exam_date: "", total_days: 0, daily_study_hours: 0, strategy: "", plan: [] };
     }
 
     const daysMap = new Map<string, any>();
 
-    planData.schedulePerDayList.forEach((dayItem: any) => {
+    localPlanData.schedulePerDayList.forEach((dayItem: any) => {
       const dateKey = dayItem.date ? moment(dayItem.date).format('YYYY-MM-DD') : null;
       if (!dateKey) return;
 
@@ -372,12 +461,13 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
           : [];
 
         return {
-          id: t.id, // MAPPED ID FOR TOGGLING
+          id: t.id, 
           subject: (t.syllabus && t.syllabus.title) || (t.parentTopic && t.parentTopic.title) || "",
           topic: t.title || t.topicName || t.description || "Untitled Topic",
           estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
           subtopics: formattedSubtopics,
-          resources: t.resources || [] 
+          resources: t.resources || [],
+          rawTopic: t 
         };
       });
 
@@ -402,13 +492,13 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
       }));
 
     return {
-      exam_date: planData.endDate || "",
+      exam_date: localPlanData.endDate || "",
       total_days: mergedPlanArray.length,
       daily_study_hours: 2, 
       strategy: "Adaptive Backend Plan",
       plan: mergedPlanArray
     };
-  }, [planData]);
+  }, [localPlanData]);
 
   const totalTopicsCount = useMemo(() => {
     return normalizedPlanData.plan.reduce((total, day) => total + day.topics.length, 0);
@@ -437,16 +527,16 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
               view={view}
               setView={setView}
               onBack={onBack}
-              title={planSummary?.title || planData?.title}
+              title={planSummary?.title || localPlanData?.title}
           />
 
           <div className="w-full">
             {view === 'text' ? (
                 <div className="flex flex-col gap-10 w-full">
                   <PlanOverview
-                      title={planSummary?.title || planData?.title}
-                      startDate={planData?.startDate}
-                      endDate={planData?.endDate}
+                      title={planSummary?.title || localPlanData?.title}
+                      startDate={localPlanData?.startDate}
+                      endDate={localPlanData?.endDate}
                       progress={progressPercentage}
                   />
                   <TodaysFocus 
@@ -462,6 +552,7 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
                     planData={normalizedPlanData} 
                     completedTopicIds={completedTopicIds}
                     onToggleTopic={toggleTopicCompletion}
+                    onUpdatePlan={handleUpdatePlan} 
                   />
                 </div>
             )}

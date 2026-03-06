@@ -2,18 +2,19 @@
 
 import React, { useState, useEffect } from 'react'
 import moment from 'moment'
-import { X, MonitorPlay, FileText } from 'lucide-react'
+import { X, PlayCircle, FileText, Bot } from 'lucide-react'
 import type { StudyTopic } from '@/shared/generated-plan'
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { useNavigate } from 'react-router-dom'
 
 interface TaskSidebarProps {
   selectedDate: Date | null;
   onClose: () => void;
   topicsForSelectedDate: StudyTopic[];
   completedTopicIds: Set<string>;
-  onToggleTopic: (topicId: string) => void; // Updated Prop Signature
+  onToggleTopic: (topicId: string) => void;
 }
 
 export const TaskSidebar = ({
@@ -23,6 +24,7 @@ export const TaskSidebar = ({
   completedTopicIds,
   onToggleTopic
 }: TaskSidebarProps) => {
+  const navigate = useNavigate();
   const selectedDateKey = selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : "";
   
   const [completedSubtopics, setCompletedSubtopics] = useState<Set<string>>(new Set());
@@ -39,6 +41,13 @@ export const TaskSidebar = ({
       else next.add(key);
       return next;
     });
+  }
+
+  // Uses react-router-dom to navigate to the chat page with query params
+  const handleChatJump = (e: React.MouseEvent, topicId: string, topicName: string) => {
+    e.stopPropagation();
+    const chatUrl = `/chat?topicId=${topicId}&topicTitle=${encodeURIComponent(topicName)}`;
+    navigate(chatUrl); 
   }
 
   if (!selectedDate) return null;
@@ -82,9 +91,9 @@ export const TaskSidebar = ({
           
           <div className="space-y-3">
             {safeTopics.map((topic, idx) => {
-              // Ensure we use the backend topic ID
               const topicId = String((topic as any).id);
               const isMainCompleted = completedTopicIds.has(topicId);
+              const resources = (topic as any).resources || [];
               
               const validSubtopics = Array.isArray(topic.subtopics) 
                 ? topic.subtopics.filter(sub => typeof sub === 'string' && sub.trim() !== '')
@@ -100,29 +109,76 @@ export const TaskSidebar = ({
                   }`}
                 >
                   
-                  {/* MAIN TOPIC */}
                   <div className="flex items-start space-x-3.5">
                     <Checkbox 
                       checked={isMainCompleted}
                       onCheckedChange={() => onToggleTopic(topicId)}
-                      className="mt-1 h-[18px] w-[18px] rounded-[4px] border-zinc-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500 transition-all"
+                      className="mt-1 h-[18px] w-[18px] shrink-0 rounded-[4px] border-zinc-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500 transition-all"
                     />
                     
-                    <div className="flex flex-col gap-1 cursor-pointer flex-1 min-w-0 select-none" onClick={() => onToggleTopic(topicId)}>
-                       {topic.subject && (
-                         <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1">{topic.subject}</span>
-                       )}
-                       <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
-                         {topic.topic}
-                       </span>
-                       <div className="flex items-center gap-2 mt-1 text-zinc-500 text-[10px] font-medium uppercase tracking-wider">
-                          <span className="h-1 w-1 rounded-full bg-zinc-600" />
-                          <span>Est. {topic.estimated_hours}h</span>
-                       </div>
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
+                      
+                      {/* Title Section */}
+                      <div className="cursor-pointer select-none" onClick={() => onToggleTopic(topicId)}>
+                        {topic.subject && (
+                          <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1 block mb-0.5">
+                            {topic.subject}
+                          </span>
+                        )}
+                        <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
+                          {topic.topic}
+                        </span>
+                      </div>
+
+                      {/* Icons Section (Placed below the title) */}
+                      <div className="flex items-center gap-3.5 mt-2">
+                        {resources.map((r: { type: string; url?: string }, index: number) => {
+                          if (r.type === "ARTICLE" && r.url) {
+                            return (
+                              <a 
+                                key={index} 
+                                href={r.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                title="Read Article" 
+                                className="hover:scale-110 transition-transform"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <FileText className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
+                              </a>
+                            )
+                          }
+                          if (r.type === "VIDEO" && r.url) {
+                            return (
+                              <a 
+                                key={index} 
+                                href={r.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                title="Watch Video" 
+                                className="hover:scale-110 transition-transform"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <PlayCircle className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors cursor-pointer" />
+                              </a>
+                            )
+                          }
+                          return null
+                        })}
+
+                        <button 
+                          onClick={(e) => handleChatJump(e, topicId, topic.topic)} 
+                          title={`Chat about ${topic.topic}`} 
+                          className="hover:scale-110 transition-transform"
+                        >
+                          <Bot className="h-4 w-4 text-zinc-500 hover:text-cyan-400 transition-colors" />
+                        </button>
+                      </div>
+
                     </div>
                   </div>
 
-                  {/* SUBTOPICS CHECKLIST + ICONS */}
+                  {/* SUBTOPICS CHECKLIST */}
                   {validSubtopics.length > 0 && (
                     <div className={`mt-4 pt-3 border-t border-zinc-800/50 flex flex-col gap-2 transition-opacity ${isMainCompleted ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                       {validSubtopics.map((sub, i) => {
@@ -144,24 +200,6 @@ export const TaskSidebar = ({
                                >
                                  {sub}
                                </span>
-                            </div>
-
-                            {/* RESOURCES ACTION ICONS */}
-                            <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover/sub:opacity-100 transition-opacity">
-                               <button 
-                                 onClick={(e) => { e.stopPropagation(); console.log(`Open Video for: ${sub}`) }}
-                                 className="p-1.5 text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-md transition-all"
-                                 title="Watch Video Lecture"
-                               >
-                                  <MonitorPlay className="h-[14px] w-[14px]" />
-                               </button>
-                               <button 
-                                 onClick={(e) => { e.stopPropagation(); console.log(`Open Article for: ${sub}`) }}
-                                 className="p-1.5 text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-md transition-all"
-                                 title="Read Study Material"
-                               >
-                                  <FileText className="h-[14px] w-[14px]" />
-                               </button>
                             </div>
                           </div>
                         )

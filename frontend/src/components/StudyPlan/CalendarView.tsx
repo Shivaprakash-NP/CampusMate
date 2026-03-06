@@ -1,4 +1,3 @@
-// CalendarView.tsx
 import React, { useState, useMemo } from 'react'
 import { Calendar, momentLocalizer, type View, Views } from 'react-big-calendar'
 import moment from 'moment'
@@ -22,11 +21,12 @@ export interface CalendarEvent {
 interface CalendarViewProps {
   planData: ExamStudyPlan;
   completedTopicIds: Set<string>;
-  // Updated to match the new ID-based toggle logic
-  onToggleTopic: (topicId: string) => void; 
+  onToggleTopic: (topicId: string) => void;
+  // Prop connected directly to StudyPlan.tsx API logic
+  onUpdatePlan: (modifiedEvents: CalendarEvent[]) => Promise<void>; 
 }
 
-const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarViewProps) => {
+const CalendarView = ({ planData, completedTopicIds, onToggleTopic, onUpdatePlan }: CalendarViewProps) => {
   const [view, setView] = useState<View>(Views.MONTH)
   
   const initialDate = useMemo(() => {
@@ -41,13 +41,11 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
   const [date, setDate] = useState(initialDate)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [currentPlanData, setCurrentPlanData] = useState<ExamStudyPlan>(planData)
 
   const events = useMemo<CalendarEvent[]>(() => {
     const calendarEvents: CalendarEvent[] = []
-    currentPlanData.plan.forEach((dayPlan) => {
+    planData.plan.forEach((dayPlan) => {
       let currentStartTime = moment(dayPlan.date).set({ hour: 9, minute: 0 })
       dayPlan.topics.forEach((topic, index) => {
         const durationMinutes = topic.estimated_hours * 60
@@ -64,47 +62,7 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
       })
     })
     return calendarEvents
-  }, [currentPlanData])
-
-  const handleApplyScheduleChanges = (modifiedEvents: CalendarEvent[]) => {
-    const topicsByDate: Record<string, any[]> = {};
-
-    modifiedEvents.forEach(event => {
-      const newDateKey = moment(event.start).format('YYYY-MM-DD');
-      if (!topicsByDate[newDateKey]) {
-        topicsByDate[newDateKey] = [];
-      }
-      topicsByDate[newDateKey].push(event.resource);
-    });
-
-    const updatedPlanArray = Object.keys(topicsByDate).map((dateStr, index) => {
-      const existingDay = currentPlanData.plan.find(p => p.date === dateStr);
-      const computedFocus = topicsByDate[dateStr][0]?.subject || "Custom Focus";
-
-      if (existingDay) {
-        return {
-          ...existingDay,
-          focus: (existingDay as any).focus || computedFocus,
-          topics: topicsByDate[dateStr],
-        };
-      } else {
-        return {
-          day: currentPlanData.plan.length + index + 1,
-          date: dateStr,
-          focus: computedFocus,
-          topics: topicsByDate[dateStr],
-          tasks: [],
-        };
-      }
-    });
-
-    updatedPlanArray.sort((a, b) => moment(a.date).valueOf() - moment(b.date).valueOf());
-
-    setCurrentPlanData(prev => ({
-      ...prev,
-      plan: updatedPlanArray as typeof prev.plan
-    }));
-  }
+  }, [planData])
 
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || '';
@@ -112,9 +70,8 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
     let bg = 'rgba(161, 161, 170, 0.1)';
     let borderColor = 'rgba(161, 161, 170, 0.2)';
 
-    // Using Cyan base for priority tags
     if (subject.includes('exam') || subject.includes('os') || subject.includes('operating')) {
-      color = '#22d3ee'; // cyan-400
+      color = '#22d3ee'; 
       bg = 'rgba(6, 182, 212, 0.1)';
       borderColor = 'rgba(6, 182, 212, 0.2)';
     } else if (subject.includes('dbms') || subject.includes('web')) {
@@ -153,7 +110,7 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
   }
 
   const selectedDateKey = selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : "";
-  const currentDayMeta = currentPlanData.plan.find(d => d.date === selectedDateKey);
+  const currentDayMeta = planData.plan.find(d => d.date === selectedDateKey);
   const currentTopics = currentDayMeta?.topics || [];
 
   return (
@@ -222,10 +179,7 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
               dayPropGetter={dayPropGetter}
               toolbar={false}
               selectable={true}
-              // STRICT VIEWS: Prevents the calendar from breaking into an unstyled day view
               views={[Views.MONTH, Views.WEEK]}
-              
-              // EVENT INTERCEPTIONS: Route clicks directly to the Sidebar
               onDrillDown={(clickedDate) => {
                 setSelectedDate(clickedDate);
                 setIsSidebarOpen(true);
@@ -234,7 +188,6 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
                 setSelectedDate(clickedDate);
                 setIsSidebarOpen(true);
               }}
-              
               onSelectSlot={(info) => { setSelectedDate(info.start); setIsSidebarOpen(true); }}
               onSelectEvent={(ev) => { setSelectedDate(ev.start); setIsSidebarOpen(true); }}
               style={{ height: '100%' }}
@@ -278,7 +231,6 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
           .rbc-date-cell:hover { color: #06b6d4; }
           .rbc-now .rbc-date-cell { color: #06b6d4 !important; font-weight: 700; }
           
-          /* Updated Show More UI */
           .rbc-show-more { 
             color: #06b6d4 !important; 
             font-size: 0.65rem !important; 
@@ -300,7 +252,7 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         initialEvents={events}
-        onApply={handleApplyScheduleChanges}
+        onApply={onUpdatePlan}
       />
     </>
   )
