@@ -490,6 +490,26 @@ public class ScheduleService {
         }
     }
 
+    private void calculateAndSetProgress(Schedule schedule) {
+        if (schedule.getSchedulePerDayList() == null || schedule.getSchedulePerDayList().isEmpty()) {
+            schedule.setProgress(0.0);
+            return;
+        }
+
+        long totalTopics = 0;
+        long completedTopics = 0;
+
+        for (SchedulePerDay day : schedule.getSchedulePerDayList()) {
+            if (day.getTopics() != null) {
+                totalTopics += day.getTopics().size();
+                completedTopics += day.getTopics().stream().filter(Topic::isCompleted).count();
+            }
+        }
+
+        double progress = (totalTopics == 0) ? 0.0 : ((double) completedTopics / totalTopics) * 100.0;
+        schedule.setProgress(Math.round(progress * 10.0) / 10.0);
+    }
+
     public List<Schedule> getAllSchedules() {
         try {
             Users currentUser = getCurrentUser();
@@ -499,6 +519,7 @@ public class ScheduleService {
                 if (schedule.getSchedulePerDayList() != null) {
                     schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
                 }
+                calculateAndSetProgress(schedule);
             }
 
             return schedules;
@@ -514,6 +535,8 @@ public class ScheduleService {
             if (schedule.getSchedulePerDayList() != null) {
                 schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
             }
+
+            calculateAndSetProgress(schedule);
 
             return schedule;
         } catch (Exception e) {

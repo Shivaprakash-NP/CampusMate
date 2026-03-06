@@ -15,4 +15,10 @@ public interface TopicRepository extends JpaRepository<Topic, Long>{
 
     @Query("SELECT COUNT(t) FROM Topic t WHERE t.syllabus.id = :syllabusId AND t.parentTopic IS NOT NULL AND t.completed = true")
     long countCompletedSubtopicsBySyllabusId(@Param("syllabusId") Long syllabusId);
+
+    @Query("SELECT COUNT(t) FROM Topic t JOIN t.schedulePerDay spd WHERE spd.schedule.id = :scheduleId")
+    long countTopicsByScheduleId(@Param("scheduleId") Long scheduleId);
+
+    @Query("SELECT COUNT(t) FROM Topic t JOIN t.schedulePerDay spd WHERE spd.schedule.id = :scheduleId AND t.completed = true")
+    long countCompletedTopicsByScheduleId(@Param("scheduleId") Long scheduleId);
 }

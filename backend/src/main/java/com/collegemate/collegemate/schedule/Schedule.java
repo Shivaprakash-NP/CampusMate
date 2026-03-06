@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,4 +40,8 @@ public class Schedule {
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private Users user;
+
+    @Transient
+    @JsonProperty("progress")
+    private Double progress = 0.0;
 } 
