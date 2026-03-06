@@ -227,6 +227,12 @@ public class ScheduleService {
 
         if (savedSchedule.getSchedulePerDayList() != null) {
             savedSchedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+
+            for (SchedulePerDay day : savedSchedule.getSchedulePerDayList()) {
+                if (day.getTopics() != null) {
+                    day.getTopics().sort(Comparator.comparing(Topic::getSequenceOrder));
+                }
+            }
         }
 
         return savedSchedule;
