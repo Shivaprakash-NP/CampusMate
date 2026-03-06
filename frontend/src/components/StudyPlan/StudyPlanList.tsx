@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from "react"
 import { Plus, Trash2, LayoutTemplate, ArrowLeft, Loader2 } from "lucide-react"
-// Notice: Navbar import is completely removed here to fix the double-navbar issue
 import StudyPlanUpload from "./StudyPlanUpload"
 import StudyPlanDetail from "./StudyPlan"
 
@@ -43,7 +42,37 @@ export default function StudyPlans() {
   // Navigation States
   const [isConfiguring, setIsConfiguring] = useState(false)
   const [activePlanTitle, setActivePlanTitle] = useState("")
-  const [activePlanId, setActivePlanId] = useState<string | null>(null)
+  
+  // 1. Rename the base state so we can wrap it in a custom setter
+  const [activePlanIdState, setActivePlanIdState] = useState<string | null>(null)
+
+  // 2. Read the URL on mount and handle the browser Back/Forward buttons
+  useEffect(() => {
+    const syncStateFromUrl = () => {
+      const params = new URLSearchParams(window.location.search)
+      setActivePlanIdState(params.get("planId"))
+    }
+
+    syncStateFromUrl() // Check URL on initial load
+    window.addEventListener("popstate", syncStateFromUrl) // Handle back button
+
+    return () => window.removeEventListener("popstate", syncStateFromUrl)
+  }, [])
+
+  // 3. Custom setter that updates BOTH React state and the Browser URL
+  const setActivePlanId = (id: string | null) => {
+    setActivePlanIdState(id)
+    const url = new URL(window.location.href)
+    if (id) {
+      url.searchParams.set("planId", id)
+    } else {
+      url.searchParams.delete("planId")
+    }
+    window.history.pushState({}, "", url)
+  }
+
+  // Use this variable everywhere in your JSX just like before
+  const activePlanId = activePlanIdState
 
   // --- FETCH DATA FROM BACKEND ---
   useEffect(() => {
@@ -63,7 +92,7 @@ export default function StudyPlans() {
         if (!response.ok) throw new Error("Failed to fetch schedules");
 
         const data = await response.json();
-        console.log(data)
+        
         // Map backend data to frontend interface
         const mappedPlans: StudyPlanSummary[] = data.map((plan: any) => {
           let totalTopics = 0;
@@ -90,7 +119,6 @@ export default function StudyPlans() {
           };
         });
 
-        // Sort by newest first
         mappedPlans.sort((a, b) => Number(b.id) - Number(a.id));
         setPlans(mappedPlans);
       } catch (error) {
@@ -100,22 +128,23 @@ export default function StudyPlans() {
       }
     };
 
-    if (!isConfiguring && !activePlanId) {
+    // 4. FIX: Removed "!activePlanId" from this check! 
+    // We MUST fetch the list even if we are viewing a specific plan, 
+    // otherwise the detail view won't have the data it needs to render.
+    if (!isConfiguring) {
       fetchSchedules();
     }
-  }, [isConfiguring, activePlanId]);
+  }, [isConfiguring]);
 
   // --- Handlers ---
   const handleDelete = async (id: string) => {
     try {
-      // 1. Get the auth token
       let token = localStorage.getItem("accessToken") || "";
       if (!token) {
         const match = document.cookie.match(/(?:^|; )accessToken=([^;]*)/);
         if (match) token = match[1];
       }
 
-      // 2. Call the backend delete endpoint
       const response = await fetch(`http://localhost:8080/api/schedule/delete/${id}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -126,7 +155,6 @@ export default function StudyPlans() {
         throw new Error("Failed to delete the study plan from the server");
       }
 
-      // 3. If successful, update the UI
       setPlans((prev) => prev.filter((plan) => plan.id !== id))
       if (activePlanId === id) setActivePlanId(null)
       
@@ -170,7 +198,7 @@ export default function StudyPlans() {
   const StatusIndicator = ({ status }: { status: PlanStatus }) => {
     const styles = {
       completed: "text-emerald-400",
-      active: "text-cyan-400", // Replaced indigo/purple with cyan
+      active: "text-cyan-400",
       draft: "text-zinc-500"
     }
     return (
@@ -182,17 +210,26 @@ export default function StudyPlans() {
 
   return (
     <div className="min-h-screen bg-zinc-950 font-sans selection:bg-zinc-800 text-zinc-100 flex flex-col">
-      {/* RENDER VIEWS INSIDE THE MAIN LAYOUT */}
       <div className="sticky top-0 z-40 w-full">
         <Navbar />
       </div>
+      
+      {/* 5. FIX: Wrap detail view loading in an isLoading check */}
       {activePlanId ? (
-        // 1. DETAIL VIEW
         <div className="flex-1 animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
           {(() => {
-            // Highly robust ID check to guarantee a match
             const selectedPlan = plans.find((p) => String(p.id) === String(activePlanId));
-            console.log("activePlanId:", activePlanId, "selectedPlan:", selectedPlan);
+            
+            // Show a loading spinner if the ID exists in the URL but the fetch hasn't finished yet
+            if (isLoading) {
+              return (
+                <div className="flex flex-col items-center justify-center flex-1 py-32 px-4">
+                  <Loader2 className="h-8 w-8 text-zinc-600 animate-spin mb-4" />
+                  <h3 className="text-sm font-medium text-zinc-400">Loading plan details...</h3>
+                </div>
+              );
+            }
+
             if (!selectedPlan) {
               return (
                 <div className="p-16 flex flex-col items-center justify-center">
@@ -204,7 +241,6 @@ export default function StudyPlans() {
 
             return (
               <StudyPlanDetail 
-                // Using 'as any' bypasses the strict TS prop error so the page can actually load
                 planSummary={selectedPlan} 
                 planData={selectedPlan.fullData}
                 onBack={() => setActivePlanId(null)} 
@@ -213,7 +249,6 @@ export default function StudyPlans() {
           })()}
         </div>
       ) : isConfiguring ? (
-        // 2. CONFIGURATION VIEW
         <div className="flex-1 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
           <div className="max-w-5xl mx-auto px-4 pt-8">
              <Button 
@@ -231,7 +266,6 @@ export default function StudyPlans() {
           />
         </div>
       ) : (
-        // 3. DASHBOARD LIST VIEW
         <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div className="flex flex-col gap-1.5">
@@ -260,15 +294,12 @@ export default function StudyPlans() {
 
             <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden shadow-sm backdrop-blur-sm flex flex-col">
               
-              {/* LOADING STATE */}
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center flex-1 py-16 px-4">
                   <Loader2 className="h-8 w-8 text-zinc-600 animate-spin mb-4" />
                   <h3 className="text-sm font-medium text-zinc-400">Loading your plans...</h3>
                 </div>
               ) : plans.length === 0 ? (
-                
-                /* EMPTY STATE */
                 <div className="flex flex-col items-center justify-center flex-1 py-16 px-4 animate-in fade-in duration-500">
                   <LayoutTemplate className="h-10 w-10 text-zinc-700 mb-4" />
                   <h3 className="text-sm font-medium text-zinc-200 mb-1">No study plans yet</h3>
@@ -283,8 +314,6 @@ export default function StudyPlans() {
                   </Button>
                 </div>
               ) : (
-                
-                /* POPULATED LIST */
                 <div className="flex flex-col divide-y divide-zinc-800/50">
                   {plans.map((plan) => (
                     <div
