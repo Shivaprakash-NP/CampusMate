@@ -5,6 +5,6 @@ import java.util.List;
 import com.collegemate.collegemate.user.Users;
 
 public interface TopicService {
-    public double toggleTopicCompletion(Long topicId);
+    double toggleTopicCompletion(Long topicId);
 }
 
