@@ -1,12 +1,13 @@
 // StudyPlan.tsx
 "use client"
 
-import { useState, useMemo } from "react"
-import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft, PlayCircle, FileText } from "lucide-react"
 import moment from "moment"
 import Navbar from "../Navbar"
 import { type ExamStudyPlan } from "@/shared/generated-plan" 
 import CalendarView from "./CalendarView"
+import { Checkbox } from "@/components/ui/checkbox" 
 
 interface StudyPlanProps {
   planSummary?: any;
@@ -110,7 +111,15 @@ const PlanOverview = ({ title, startDate, endDate, progress }: { title?: string,
   )
 }
 
-const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
+const TodaysFocus = ({ 
+  normalizedPlan, 
+  completedTopicIds, 
+  onToggleTopic 
+}: { 
+  normalizedPlan: ExamStudyPlan;
+  completedTopicIds: Set<string>;
+  onToggleTopic: (topicId: string) => void;
+}) => {
   const todayStr = moment().format('YYYY-MM-DD');
 
   let currentDayPlan = normalizedPlan.plan.find(p => p.date === todayStr);
@@ -118,11 +127,12 @@ const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
     currentDayPlan = normalizedPlan.plan[0];
   }
 
-  const items = currentDayPlan?.topics?.map((t, index) => ({
-    topic: t.subject,
-    sub: t.topic,
-    status: index === 0 ? "IN PROGRESS" : "QUEUED",
+  const items = currentDayPlan?.topics?.map((t: any, index: number) => ({
+    id: String(t.id), // Added Database ID
+    topic: t.topic, 
+    sub: t.subject, 
     active: index === 0,
+    resources: t.resources || [] 
   })) || [];
 
   const displayDate = currentDayPlan ? moment(currentDayPlan.date).format('dddd, MMM D') : moment().format('dddd, MMM D');
@@ -141,37 +151,81 @@ const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
         </div>
 
         <div className="flex flex-col rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden divide-y divide-zinc-800/50">
-          {items.length > 0 ? items.map(item => (
-              <div
-                  key={item.topic + item.sub}
-                  className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-colors hover:bg-zinc-800/40 cursor-pointer`}
-              >
-                <div className="flex items-start gap-3.5">
-                  <div className="mt-0.5 flex-shrink-0">
-                    {item.active ? (
-                        <CheckCircle className="size-4 text-cyan-400" />
-                    ) : (
-                        <CircleDashed className="size-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+          {items.length > 0 ? items.map((item, index) => {
+              // Now checks using the backend ID
+              const isCompleted = completedTopicIds.has(item.id);
+
+              return (
+                <div
+                    key={`${item.topic}-${index}`}
+                    className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-colors hover:bg-zinc-800/40 cursor-pointer ${isCompleted ? 'opacity-60' : ''}`}
+                    onClick={() => onToggleTopic(item.id)}
+                >
+                  <div className="flex items-start gap-3.5">
+                    <div className="mt-0.5 flex-shrink-0">
+                      <Checkbox 
+                        checked={isCompleted}
+                        onCheckedChange={() => onToggleTopic(item.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded-[4px] border-zinc-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500 transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[13px] font-medium transition-colors ${isCompleted ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-zinc-200'}`}>
+                        {item.topic}
+                      </span>
+                      
+                      {item.sub && (
+                        <span className="text-xs text-zinc-500">{item.sub}</span>
+                      )}
+
+                    </div>
+                  </div>
+
+                  {/* RIGHT SIDE: Resource Icons always visible */}
+                  <div className="flex items-center gap-2.5 self-end sm:self-auto ml-7 sm:ml-0">
+                    {item.resources.length > 0 && (
+                      <div className="flex items-center gap-2.5">
+                        {item.resources.map((res: any, rIdx: number) => {
+                          if (res.type === 'VIDEO') {
+                            return (
+                              <a 
+                                key={rIdx} 
+                                href={res.url || res.fallbackQueryUrl || "#"} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => e.stopPropagation()} 
+                                className="text-zinc-500 hover:text-cyan-400 transition-colors" 
+                                title={res.title || "Watch Video"}
+                              >
+                                <PlayCircle className="w-[18px] h-[18px]" />
+                              </a>
+                            );
+                          }
+                          if (res.type === 'ARTICLE') {
+                            return (
+                              <a 
+                                key={rIdx} 
+                                href={res.url || res.fallbackQueryUrl || "#"} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => e.stopPropagation()} 
+                                className="text-zinc-500 hover:text-cyan-400 transition-colors" 
+                                title={res.title || "Read Article"}
+                              >
+                                <FileText className="w-[18px] h-[18px]" />
+                              </a>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
                     )}
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                <span className={`text-[13px] font-medium transition-colors ${item.active ? 'text-zinc-100' : 'text-zinc-300 group-hover:text-zinc-200'}`}>
-                  {item.topic}
-                </span>
-                    <span className="text-xs text-zinc-500">{item.sub}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-4 self-end sm:self-auto ml-7 sm:ml-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-              <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
-                {item.status}
-              </span>
-                  <button className="text-zinc-600 hover:text-zinc-300 transition-colors">
-                    <ArrowRight className="size-4" />
-                  </button>
                 </div>
-              </div>
-          )) : (
+              )
+          }) : (
               <div className="p-6 text-center text-sm text-zinc-500 font-medium">
                 No topics scheduled for this date.
               </div>
@@ -211,12 +265,14 @@ const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan })
                     <ArrowRight className="size-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
                   </div>
                   <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-zinc-200 group-hover:text-cyan-400 transition-colors">
-                  {firstTopic?.subject || "Study Session"}
-                </span>
-                    <span className="text-xs text-zinc-500 line-clamp-1">
-                  {firstTopic?.topic || "Assigned portions"}
-                </span>
+                    <span className="text-sm font-medium text-zinc-200 group-hover:text-cyan-400 transition-colors">
+                      {firstTopic?.topic || "Untitled Topic"}
+                    </span>
+                    {firstTopic?.subject && (
+                      <span className="text-xs text-zinc-500 line-clamp-1">
+                        {firstTopic.subject}
+                      </span>
+                    )}
                   </div>
                 </div>
             )
@@ -235,17 +291,62 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   
   const [completedTopicIds, setCompletedTopicIds] = useState<Set<string>>(new Set())
 
-  const toggleTopicCompletion = (dateKey: string, topicIndex: number) => {
-    const id = `${dateKey}-${topicIndex}`;
+  // SET INITIAL STATE FROM BACKEND DATA
+  useEffect(() => {
+    if (planData && planData.schedulePerDayList) {
+      const initialSet = new Set<string>();
+      planData.schedulePerDayList.forEach((dayItem: any) => {
+        dayItem.topics?.forEach((t: any) => {
+          if (t.completed) {
+            initialSet.add(String(t.id));
+          }
+        });
+      });
+      setCompletedTopicIds(initialSet);
+    }
+  }, [planData]);
+
+  // TOGGLE API LOGIC
+  const toggleTopicCompletion = async (topicId: string) => {
+    // 1. Optimistic UI update (feels instant to the user)
     setCompletedTopicIds(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(topicId)) {
+        newSet.delete(topicId);
       } else {
-        newSet.add(id);
+        newSet.add(topicId);
       }
       return newSet;
     });
+
+    // 2. Call backend endpoint
+    try {
+      let token = localStorage.getItem("accessToken") || "";
+      if (!token) {
+        const match = document.cookie.match(/(?:^|; )accessToken=([^;]*)/);
+        if (match) token = match[1];
+      }
+
+      const response = await fetch(`http://localhost:8080/api/topics/${topicId}/toggle`, {
+        method: "POST", // Toggle endpoint
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      if (!response.ok) throw new Error("Failed to sync toggle with server");
+
+    } catch (error) {
+      console.error("Error toggling topic:", error);
+      // Revert optimistic update if API fails
+      setCompletedTopicIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(topicId)) {
+          newSet.delete(topicId);
+        } else {
+          newSet.add(topicId);
+        }
+        return newSet;
+      });
+    }
   }
 
   const normalizedPlanData: ExamStudyPlan = useMemo(() => {
@@ -265,16 +366,13 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
           ? rawSubtopics.map(sub => typeof sub === 'string' ? sub : (sub.title || sub.name || sub.description || "Subtopic"))
           : [];
 
-        // --- THIS IS THE FIX ---
         return {
-          // Put the parent syllabus title (or "Study Module") as the cyan category text
-          subject: (t.syllabus && t.syllabus.title) || (t.parentTopic && t.parentTopic.title) || "Study Module",
-          
-          // Put the actual specific topic title as the large white text
-          topic: t.title || t.topicName || t.description || "Study Session",
-          
+          id: t.id, // MAPPED ID FOR TOGGLING
+          subject: (t.syllabus && t.syllabus.title) || (t.parentTopic && t.parentTopic.title) || "",
+          topic: t.title || t.topicName || t.description || "Untitled Topic",
           estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
-          subtopics: formattedSubtopics
+          subtopics: formattedSubtopics,
+          resources: t.resources || [] 
         };
       });
 
@@ -346,7 +444,11 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
                       endDate={planData?.endDate}
                       progress={progressPercentage}
                   />
-                  <TodaysFocus normalizedPlan={normalizedPlanData} />
+                  <TodaysFocus 
+                    normalizedPlan={normalizedPlanData} 
+                    completedTopicIds={completedTopicIds}
+                    onToggleTopic={toggleTopicCompletion}
+                  />
                   <UpcomingSchedule normalizedPlan={normalizedPlanData} />
                 </div>
             ) : (

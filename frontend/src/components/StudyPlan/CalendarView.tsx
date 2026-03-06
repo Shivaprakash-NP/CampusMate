@@ -22,7 +22,8 @@ export interface CalendarEvent {
 interface CalendarViewProps {
   planData: ExamStudyPlan;
   completedTopicIds: Set<string>;
-  onToggleTopic: (dateKey: string, topicIndex: number) => void;
+  // Updated to match the new ID-based toggle logic
+  onToggleTopic: (topicId: string) => void; 
 }
 
 const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarViewProps) => {
@@ -53,7 +54,7 @@ const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarVi
         const endTime = moment(currentStartTime).add(durationMinutes, 'minutes')
         calendarEvents.push({
           id: `${dayPlan.day}-${topic.topic}-${index}`,
-          title: `${topic.subject}: ${topic.topic}`,
+          title: topic.subject ? `${topic.subject}: ${topic.topic}` : topic.topic,
           start: currentStartTime.toDate(),
           end: endTime.toDate(),
           resource: topic,

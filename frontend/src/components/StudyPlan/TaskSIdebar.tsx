@@ -13,7 +13,7 @@ interface TaskSidebarProps {
   onClose: () => void;
   topicsForSelectedDate: StudyTopic[];
   completedTopicIds: Set<string>;
-  onToggleTopic: (dateKey: string, topicIndex: number) => void;
+  onToggleTopic: (topicId: string) => void; // Updated Prop Signature
 }
 
 export const TaskSidebar = ({
@@ -25,10 +25,8 @@ export const TaskSidebar = ({
 }: TaskSidebarProps) => {
   const selectedDateKey = selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : "";
   
-  // Local state for toggling subtopics inside the sidebar
   const [completedSubtopics, setCompletedSubtopics] = useState<Set<string>>(new Set());
 
-  // Reset local subtopic checklist when changing dates
   useEffect(() => {
     setCompletedSubtopics(new Set());
   }, [selectedDateKey]);
@@ -45,13 +43,11 @@ export const TaskSidebar = ({
 
   if (!selectedDate) return null;
 
-  // Added a safety fallback to ensure map doesn't fail if undefined is passed
   const safeTopics = Array.isArray(topicsForSelectedDate) ? topicsForSelectedDate : [];
 
   return (
     <div className="w-full h-full bg-[#09090b] flex flex-col z-50">
       
-      {/* HEADER */}
       <div className="px-6 py-6 flex items-start justify-between shrink-0 border-b border-zinc-800/40">
         <div className="space-y-1.5">
           <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Day Details</h2>
@@ -72,7 +68,6 @@ export const TaskSidebar = ({
         </Button>
       </div>
 
-      {/* SCROLLABLE TOPICS AREA */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 custom-scrollbar">
         
         <section className="space-y-4">
@@ -87,9 +82,10 @@ export const TaskSidebar = ({
           
           <div className="space-y-3">
             {safeTopics.map((topic, idx) => {
-              const isMainCompleted = completedTopicIds.has(`${selectedDateKey}-${idx}`);
+              // Ensure we use the backend topic ID
+              const topicId = String((topic as any).id);
+              const isMainCompleted = completedTopicIds.has(topicId);
               
-              // Ensure we only render a subtopic section if there are actual, non-empty text strings
               const validSubtopics = Array.isArray(topic.subtopics) 
                 ? topic.subtopics.filter(sub => typeof sub === 'string' && sub.trim() !== '')
                 : [];
@@ -108,12 +104,14 @@ export const TaskSidebar = ({
                   <div className="flex items-start space-x-3.5">
                     <Checkbox 
                       checked={isMainCompleted}
-                      onCheckedChange={() => onToggleTopic(selectedDateKey, idx)}
+                      onCheckedChange={() => onToggleTopic(topicId)}
                       className="mt-1 h-[18px] w-[18px] rounded-[4px] border-zinc-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500 transition-all"
                     />
                     
-                    <div className="flex flex-col gap-1 cursor-pointer flex-1 min-w-0 select-none" onClick={() => onToggleTopic(selectedDateKey, idx)}>
-                       <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1">{topic.subject}</span>
+                    <div className="flex flex-col gap-1 cursor-pointer flex-1 min-w-0 select-none" onClick={() => onToggleTopic(topicId)}>
+                       {topic.subject && (
+                         <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1">{topic.subject}</span>
+                       )}
                        <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'line-through text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
                          {topic.topic}
                        </span>
