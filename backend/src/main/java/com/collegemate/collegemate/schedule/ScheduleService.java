@@ -381,7 +381,6 @@ public class ScheduleService {
                                         String rawURL = resDto.getUrl();
                                         String rawfallBackURL = resDto.getFallbackQueryUrl();
 
-                                        // Clean Markdown Links if hallucinated by AI
                                         if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
                                             rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
                                         }
