@@ -157,7 +157,7 @@ const TopicRow = ({ node, depth = 0, toggleCompleted }: Props) => {
           </span>
 
           {/* Actions Column */}
-          <div className="flex items-center justify-end pr-2 md:pr-4 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+          <div className="flex items-center justify-end pr-2 md:pr-4">
             <div className="flex items-center gap-3 md:gap-4">
               {node.resources?.map((r: { type: string; url?: string }, index: number) => {
                 if (r.type === "ARTICLE" && r.url) {

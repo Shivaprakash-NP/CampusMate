@@ -5,7 +5,6 @@ import { motion } from "framer-motion"
 import TopicRow from "../components/TopicRow"
 import type { TopicNode } from "../shared/TopicNode"
 import Navbar from "./Navbar"
-import { OverallProgress } from "./ProgressBar"
 import confetti from "canvas-confetti"
 
 // Shadcn UI Imports

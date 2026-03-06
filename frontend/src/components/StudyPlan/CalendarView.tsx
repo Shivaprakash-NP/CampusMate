@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react'
+// CalendarView.tsx
+import React, { useState, useMemo } from 'react'
 import { Calendar, momentLocalizer, type View, Views } from 'react-big-calendar'
 import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react'
 import type { ExamStudyPlan } from '@/shared/generated-plan'
-import { TaskSidebar, type Task } from './TaskSIdebar'
+import { TaskSidebar } from './TaskSIdebar'
 import { EditCalendarModal } from './EditCalendarModel'
 
 const localizer = momentLocalizer(moment)
@@ -20,12 +21,13 @@ export interface CalendarEvent {
 
 interface CalendarViewProps {
   planData: ExamStudyPlan;
+  completedTopicIds: Set<string>;
+  onToggleTopic: (dateKey: string, topicIndex: number) => void;
 }
 
-const CalendarView = ({ planData }: CalendarViewProps) => {
+const CalendarView = ({ planData, completedTopicIds, onToggleTopic }: CalendarViewProps) => {
   const [view, setView] = useState<View>(Views.MONTH)
   
-  // DYNAMIC INITIAL DATE: Opens calendar to the month of the first item
   const initialDate = useMemo(() => {
     if (planData?.plan?.length > 0) {
        const todayStr = moment().format('YYYY-MM-DD');
@@ -38,27 +40,10 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
   const [date, setDate] = useState(initialDate)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [dailyTasks, setDailyTasks] = useState<Record<string, Task[]>>({})
 
-  // DND States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [currentPlanData, setCurrentPlanData] = useState<ExamStudyPlan>(planData)
 
-  // Initialize Tasks based on currentPlanData
-  useEffect(() => {
-    const initialTasks: Record<string, Task[]> = {};
-    currentPlanData.plan.forEach(day => {
-      const dateKey = moment(day.date).format('YYYY-MM-DD');
-      initialTasks[dateKey] = day.tasks.map((taskText, index) => ({
-        id: `task-${dateKey}-${index}`,
-        text: taskText,
-        completed: false
-      }));
-    });
-    setDailyTasks(initialTasks);
-  }, [currentPlanData]);
-
-  // Generate Events from currentPlanData
   const events = useMemo<CalendarEvent[]>(() => {
     const calendarEvents: CalendarEvent[] = []
     currentPlanData.plan.forEach((dayPlan) => {
@@ -80,7 +65,6 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     return calendarEvents
   }, [currentPlanData])
 
-  // --- RECONSTRUCT PLAN AFTER DRAG AND DROP ---
   const handleApplyScheduleChanges = (modifiedEvents: CalendarEvent[]) => {
     const topicsByDate: Record<string, any[]> = {};
 
@@ -121,19 +105,19 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     }));
   }
 
-  // Semantic Coloring
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || '';
-    let color = '#a1a1aa'; // zinc-400
+    let color = '#a1a1aa'; 
     let bg = 'rgba(161, 161, 170, 0.1)';
     let borderColor = 'rgba(161, 161, 170, 0.2)';
 
+    // Using Cyan base for priority tags
     if (subject.includes('exam') || subject.includes('os') || subject.includes('operating')) {
-      color = '#c084fc'; // purple-400
-      bg = 'rgba(168, 85, 247, 0.1)';
-      borderColor = 'rgba(168, 85, 247, 0.2)';
+      color = '#22d3ee'; // cyan-400
+      bg = 'rgba(6, 182, 212, 0.1)';
+      borderColor = 'rgba(6, 182, 212, 0.2)';
     } else if (subject.includes('dbms') || subject.includes('web')) {
-      color = '#34d399'; // emerald-400
+      color = '#34d399'; 
       bg = 'rgba(16, 185, 129, 0.1)';
       borderColor = 'rgba(16, 185, 129, 0.2)';
     }
@@ -159,10 +143,10 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
     const isSelected = selectedDate && moment(currentDate).isSame(selectedDate, 'day');
 
     if (isToday) {
-      return { style: { backgroundColor: 'rgba(168, 85, 247, 0.03)', boxShadow: isSelected ? 'inset 0 0 0 1px #a855f7' : 'inset 0 0 0 1px rgba(168, 85, 247, 0.2)' } };
+      return { style: { backgroundColor: 'rgba(6, 182, 212, 0.03)', boxShadow: isSelected ? 'inset 0 0 0 1px #06b6d4' : 'inset 0 0 0 1px rgba(6, 182, 212, 0.2)' } };
     }
     if (isSelected) {
-      return { style: { backgroundColor: 'rgba(255, 255, 255, 0.02)', boxShadow: 'inset 0 0 0 1px rgba(168, 85, 247, 0.4)' } };
+      return { style: { backgroundColor: 'rgba(255, 255, 255, 0.02)', boxShadow: 'inset 0 0 0 1px rgba(6, 182, 212, 0.4)' } };
     }
     return {}
   }
@@ -170,14 +154,13 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
   const selectedDateKey = selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : "";
   const currentDayMeta = currentPlanData.plan.find(d => d.date === selectedDateKey);
   const currentTopics = currentDayMeta?.topics || [];
-  const currentTasks = dailyTasks[selectedDateKey] || [];
 
   return (
     <>
       <div className="w-full flex flex-col lg:flex-row h-[600px] overflow-hidden relative">
-        <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:pr-6 lg:border-r border-zinc-800/60' : ''}`}>
+        <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:border-r border-zinc-800/60' : ''}`}>
           
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5 w-full">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5 w-full pr-4">
             <div className="w-full sm:w-auto flex justify-start order-2 sm:order-1">
               <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-full sm:w-fit">
                 <button
@@ -216,7 +199,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
             <div className="w-full sm:w-auto flex justify-end order-3">
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 hover:text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.1)]"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 hover:text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.1)]"
               >
                 <Settings2 className="w-4 h-4" />
                 Edit Plan
@@ -224,7 +207,7 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden rounded-lg border border-zinc-800/40 bg-zinc-950/20">
+          <div className="flex-1 overflow-hidden rounded-lg border border-zinc-800/40 bg-zinc-950/20 mr-4 lg:mr-0">
             <Calendar
               localizer={localizer}
               events={events}
@@ -238,6 +221,19 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
               dayPropGetter={dayPropGetter}
               toolbar={false}
               selectable={true}
+              // STRICT VIEWS: Prevents the calendar from breaking into an unstyled day view
+              views={[Views.MONTH, Views.WEEK]}
+              
+              // EVENT INTERCEPTIONS: Route clicks directly to the Sidebar
+              onDrillDown={(clickedDate) => {
+                setSelectedDate(clickedDate);
+                setIsSidebarOpen(true);
+              }}
+              onShowMore={(events, clickedDate) => {
+                setSelectedDate(clickedDate);
+                setIsSidebarOpen(true);
+              }}
+              
               onSelectSlot={(info) => { setSelectedDate(info.start); setIsSidebarOpen(true); }}
               onSelectEvent={(ev) => { setSelectedDate(ev.start); setIsSidebarOpen(true); }}
               style={{ height: '100%' }}
@@ -246,25 +242,23 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
         </div>
 
         {isSidebarOpen && selectedDate && (
-          <div className="w-full lg:w-80 shrink-0 lg:pl-6 mt-6 lg:mt-0 animate-in slide-in-from-right-4 fade-in duration-300">
+          <div className="w-full lg:w-[340px] h-full shrink-0 mt-6 lg:mt-0 animate-in slide-in-from-right-4 fade-in duration-300">
             <TaskSidebar
               selectedDate={selectedDate}
               onClose={() => setIsSidebarOpen(false)}
-              tasksForSelectedDate={currentTasks}
               topicsForSelectedDate={currentTopics}
-              onToggleTask={(dateKey, taskId) => {
-                setDailyTasks(prev => ({ ...prev, [dateKey]: prev[dateKey].map(t => t.id === taskId ? { ...t, completed: !t.completed } : t) }))
-              }}
-              onAddTask={(e, dateKey, text) => {
-                const newTask = { id: `task-${dateKey}-${Date.now()}`, text, completed: false };
-                setDailyTasks(prev => ({ ...prev, [dateKey]: [...(prev[dateKey] || []), newTask] }));
-              }}
+              completedTopicIds={completedTopicIds}
+              onToggleTopic={onToggleTopic}
             />
           </div>
         )}
 
-        <style dangerouslySetInnerHTML={{
+       <style dangerouslySetInnerHTML={{
           __html: `
+          .rbc-calendar, .rbc-calendar * { 
+            outline: none !important; 
+            border-color: rgba(39, 39, 42, 0.4) !important;
+          }
           .rbc-calendar { color: #f4f4f5; font-family: inherit; }
           .rbc-month-view, .rbc-time-view { border: none !important; background: transparent !important; } 
           .rbc-header { border-bottom: 1px solid rgba(39, 39, 42, 0.6) !important; padding: 10px 0 !important; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; border-left: none !important; color: #a1a1aa; font-weight: 600; }
@@ -279,9 +273,24 @@ const CalendarView = ({ planData }: CalendarViewProps) => {
           .rbc-day-bg:hover { background-color: rgba(255, 255, 255, 0.02) !important; cursor: pointer; }
           .rbc-off-range-bg { background: transparent !important; }
           .rbc-off-range { color: #52525b !important; } 
-          .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #d4d4d8; font-weight: 500; }
-          .rbc-now .rbc-date-cell { color: #c084fc !important; font-weight: 700; }
-          .rbc-show-more { color: #c084fc !important; font-size: 0.65rem !important; font-weight: 600 !important; background: transparent !important; padding-top: 4px; }
+          .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #d4d4d8; font-weight: 500; cursor: pointer; }
+          .rbc-date-cell:hover { color: #06b6d4; }
+          .rbc-now .rbc-date-cell { color: #06b6d4 !important; font-weight: 700; }
+          
+          /* Updated Show More UI */
+          .rbc-show-more { 
+            color: #06b6d4 !important; 
+            font-size: 0.65rem !important; 
+            font-weight: 600 !important; 
+            background: transparent !important; 
+            padding-top: 4px; 
+            transition: color 0.2s; 
+            position: relative;
+            z-index: 10;
+            cursor: pointer;
+            display: inline-block;
+          }
+          .rbc-show-more:hover { color: #67e8f9 !important; text-decoration: underline; }
           .rbc-event { padding: 0 !important; background-color: transparent !important; }
         ` }} />
       </div>
