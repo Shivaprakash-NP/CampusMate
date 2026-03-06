@@ -50,4 +50,13 @@ public class ScheduleController {
             return ResponseEntity.status(500).body("Error getting Schedules");
         }
     }
+
+    @DeleteMapping("/delete/{id}")
+    public void deletePlan(@PathVariable Long id) {
+        try {
+            scheduleService.deletePlan(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Error Deleting Your Plan");
+        }
+    }
 }
