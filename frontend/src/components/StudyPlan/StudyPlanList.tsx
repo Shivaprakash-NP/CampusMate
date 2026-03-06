@@ -107,9 +107,33 @@ export default function StudyPlans() {
 
   // --- Handlers ---
   const handleDelete = async (id: string) => {
-    // Optimistic UI Update
-    setPlans((prev) => prev.filter((plan) => plan.id !== id))
-    if (activePlanId === id) setActivePlanId(null)
+    try {
+      // 1. Get the auth token
+      let token = localStorage.getItem("accessToken") || "";
+      if (!token) {
+        const match = document.cookie.match(/(?:^|; )accessToken=([^;]*)/);
+        if (match) token = match[1];
+      }
+
+      // 2. Call the backend delete endpoint
+      const response = await fetch(`http://localhost:8080/api/schedule/delete/${id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete the study plan from the server");
+      }
+
+      // 3. If successful, update the UI
+      setPlans((prev) => prev.filter((plan) => plan.id !== id))
+      if (activePlanId === id) setActivePlanId(null)
+      
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      alert("Failed to delete the study plan. Please try again.");
+    }
   }
 
   const handleStartConfiguration = (e: React.FormEvent) => {
