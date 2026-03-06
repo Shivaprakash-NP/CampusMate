@@ -22,6 +22,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
@@ -490,6 +491,26 @@ public class ScheduleService {
         }
     }
 
+    private void calculateAndSetProgress(Schedule schedule) {
+        if (schedule.getSchedulePerDayList() == null || schedule.getSchedulePerDayList().isEmpty()) {
+            schedule.setProgress(0.0);
+            return;
+        }
+
+        long totalTopics = 0;
+        long completedTopics = 0;
+
+        for (SchedulePerDay day : schedule.getSchedulePerDayList()) {
+            if (day.getTopics() != null) {
+                totalTopics += day.getTopics().size();
+                completedTopics += day.getTopics().stream().filter(Topic::isCompleted).count();
+            }
+        }
+
+        double progress = (totalTopics == 0) ? 0.0 : ((double) completedTopics / totalTopics) * 100.0;
+        schedule.setProgress(Math.round(progress * 10.0) / 10.0);
+    }
+
     public List<Schedule> getAllSchedules() {
         try {
             Users currentUser = getCurrentUser();
@@ -499,6 +520,7 @@ public class ScheduleService {
                 if (schedule.getSchedulePerDayList() != null) {
                     schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
                 }
+                calculateAndSetProgress(schedule);
             }
 
             return schedules;
@@ -515,6 +537,8 @@ public class ScheduleService {
                 schedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
             }
 
+            calculateAndSetProgress(schedule);
+
             return schedule;
         } catch (Exception e) {
             throw new RuntimeException("Error finding Schedule");
@@ -527,5 +551,74 @@ public class ScheduleService {
         } catch (Exception e) {
             throw new RuntimeException("Error Deleting Your Plan");
         }
+    }
+
+    @Transactional
+    public Schedule updateSchedule(Schedule newPlan) {
+        Users currentUser = getCurrentUser();
+
+        Schedule existingSchedule = scheduleRepo.findById(newPlan.getId())
+                .orElseThrow(() -> new RuntimeException("Schedule Not Found"));
+
+        if (!existingSchedule.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Unauthorized: You cannot modify this schedule.");
+        }
+
+        Map<Long, SchedulePerDay> existingDaysMap = new HashMap<>();
+        Map<Long, Topic> existingTopicsMap = new HashMap<>();
+
+        for (SchedulePerDay day : existingSchedule.getSchedulePerDayList()) {
+            existingDaysMap.put(day.getId(), day);
+            if (day.getTopics() != null) {
+                for (Topic topic : day.getTopics()) {
+                    existingTopicsMap.put(topic.getId(), topic);
+                }
+            }
+        }
+
+        if (newPlan.getSchedulePerDayList() != null) {
+            for (SchedulePerDay incomingDay : newPlan.getSchedulePerDayList()) {
+
+                if (incomingDay.getId() != null && existingDaysMap.containsKey(incomingDay.getId())) {
+                    SchedulePerDay dayToUpdate = existingDaysMap.get(incomingDay.getId());
+
+                    dayToUpdate.setDate(incomingDay.getDate());
+
+                    if (incomingDay.getTopics() != null) {
+                        dayToUpdate.getTopics().clear();
+
+                        for (int i = 0; i < incomingDay.getTopics().size(); i++) {
+                            Topic incomingTopic = incomingDay.getTopics().get(i);
+
+                            if (incomingTopic.getId() != null && existingTopicsMap.containsKey(incomingTopic.getId())) {
+                                Topic topicToUpdate = existingTopicsMap.get(incomingTopic.getId());
+
+                                topicToUpdate.setSchedulePerDay(dayToUpdate);
+                                topicToUpdate.setSequenceOrder(i + 1);
+
+                                dayToUpdate.getTopics().add(topicToUpdate);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Save to Database
+        Schedule savedSchedule = scheduleRepo.save(existingSchedule);
+
+        // 5. Ultimate Safeguard: Sort chronologically so the frontend gets a perfectly ordered array back
+        if (savedSchedule.getSchedulePerDayList() != null) {
+            savedSchedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+            for (SchedulePerDay day : savedSchedule.getSchedulePerDayList()) {
+                if (day.getTopics() != null) {
+                    day.getTopics().sort(Comparator.comparing(Topic::getSequenceOrder));
+                }
+            }
+        }
+
+        calculateAndSetProgress(savedSchedule);
+
+        return savedSchedule;
     }
 }
