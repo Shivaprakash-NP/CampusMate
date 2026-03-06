@@ -227,6 +227,12 @@ public class ScheduleService {
 
         if (savedSchedule.getSchedulePerDayList() != null) {
             savedSchedule.getSchedulePerDayList().sort(Comparator.comparing(SchedulePerDay::getDate));
+
+            for (SchedulePerDay day : savedSchedule.getSchedulePerDayList()) {
+                if (day.getTopics() != null) {
+                    day.getTopics().sort(Comparator.comparing(Topic::getSequenceOrder));
+                }
+            }
         }
 
         return savedSchedule;
@@ -381,7 +387,6 @@ public class ScheduleService {
                                         String rawURL = resDto.getUrl();
                                         String rawfallBackURL = resDto.getFallbackQueryUrl();
 
-                                        // Clean Markdown Links if hallucinated by AI
                                         if(rawURL != null && rawURL.contains("](") && rawURL.endsWith(")")) {
                                             rawURL = rawURL.substring(rawURL.indexOf("](")+2, rawURL.length()-1);
                                         }
@@ -513,6 +518,14 @@ public class ScheduleService {
             return schedule;
         } catch (Exception e) {
             throw new RuntimeException("Error finding Schedule");
+        }
+    }
+
+    public void deletePlan(Long id) {
+        try {
+            scheduleRepo.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Error Deleting Your Plan");
         }
     }
 }
