@@ -128,7 +128,7 @@ const TodaysFocus = ({
   }
 
   const items = currentDayPlan?.topics?.map((t: any, index: number) => ({
-    id: String(t.id), // Added Database ID
+    id: String(t.id), 
     topic: t.topic, 
     sub: t.subject, 
     active: index === 0,
@@ -152,7 +152,6 @@ const TodaysFocus = ({
 
         <div className="flex flex-col rounded-xl border border-zinc-800/60 bg-zinc-900/30 overflow-hidden divide-y divide-zinc-800/50">
           {items.length > 0 ? items.map((item, index) => {
-              // Now checks using the backend ID
               const isCompleted = completedTopicIds.has(item.id);
 
               return (
@@ -171,7 +170,7 @@ const TodaysFocus = ({
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className={`text-[13px] font-medium transition-colors ${isCompleted ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-zinc-200'}`}>
+                      <span className={`text-[13px] font-medium transition-colors ${isCompleted ? 'text-zinc-500' : 'text-zinc-100 group-hover:text-zinc-200'}`}>
                         {item.topic}
                       </span>
                       
@@ -291,7 +290,7 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   
   const [completedTopicIds, setCompletedTopicIds] = useState<Set<string>>(new Set())
 
-  // SET INITIAL STATE FROM BACKEND DATA
+  // FIX 1: Only run initialization when the PLAN ID changes, preventing reference-bounce
   useEffect(() => {
     if (planData && planData.schedulePerDayList) {
       const initialSet = new Set<string>();
@@ -304,9 +303,9 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
       });
       setCompletedTopicIds(initialSet);
     }
-  }, [planData]);
+  }, [planData?.id]);
 
-  // TOGGLE API LOGIC
+  // FIX 2: Correct HTTP Method (PATCH) & Headers added
   const toggleTopicCompletion = async (topicId: string) => {
     // 1. Optimistic UI update (feels instant to the user)
     setCompletedTopicIds(prev => {
@@ -327,15 +326,21 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
         if (match) token = match[1];
       }
 
+      // Changed from POST to PATCH and added content-type JSON
       const response = await fetch(`http://localhost:8080/api/topics/${topicId}/toggle`, {
-        method: "POST", // Toggle endpoint
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        method: "PATCH", 
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        credentials: "include"
       });
 
       if (!response.ok) throw new Error("Failed to sync toggle with server");
 
     } catch (error) {
       console.error("Error toggling topic:", error);
+      
       // Revert optimistic update if API fails
       setCompletedTopicIds(prev => {
         const newSet = new Set(prev);

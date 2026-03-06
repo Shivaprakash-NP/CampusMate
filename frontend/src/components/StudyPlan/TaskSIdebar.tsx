@@ -112,7 +112,7 @@ export const TaskSidebar = ({
                        {topic.subject && (
                          <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1">{topic.subject}</span>
                        )}
-                       <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'line-through text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
+                       <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
                          {topic.topic}
                        </span>
                        <div className="flex items-center gap-2 mt-1 text-zinc-500 text-[10px] font-medium uppercase tracking-wider">
@@ -138,7 +138,7 @@ export const TaskSidebar = ({
                                />
                                <span 
                                  className={`text-[12.5px] leading-snug cursor-pointer transition-colors mt-px select-none ${
-                                   isSubCompleted ? 'text-zinc-600 line-through' : 'text-zinc-400 group-hover/sub:text-zinc-300'
+                                   isSubCompleted ? 'text-zinc-600' : 'text-zinc-400 group-hover/sub:text-zinc-300'
                                  }`}
                                  onClick={() => handleToggleSubtopic(idx, i)}
                                >
