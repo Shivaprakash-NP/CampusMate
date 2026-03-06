@@ -49,8 +49,8 @@ export default function FileUpload() {
       status: "uploading",
     }
 
-    // Add to the list
-    setTasks((prev) => [newTask, ...prev])
+    // Replace the list to enforce only 1 file at a time
+    setTasks([newTask])
 
     const form = new FormData()
     form.append("file", selectedFile)
@@ -92,9 +92,11 @@ export default function FileUpload() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files
-    if (!selectedFiles) return
-    // Allow multiple selection if needed, otherwise just take the first
-    Array.from(selectedFiles).forEach(file => uploadFile(file))
+    if (!selectedFiles || selectedFiles.length === 0) return
+    
+    // Only upload the first selected file
+    uploadFile(selectedFiles[0])
+    
     // Reset input so the same file can be uploaded again if deleted
     if (inputRef.current) inputRef.current.value = ""
   }
@@ -114,8 +116,9 @@ export default function FileUpload() {
       e.preventDefault()
       setIsDragging(false)
       const droppedFiles = e.dataTransfer.files
-      if (droppedFiles) {
-        Array.from(droppedFiles).forEach(file => uploadFile(file))
+      if (droppedFiles && droppedFiles.length > 0) {
+        // Only upload the first dropped file
+        uploadFile(droppedFiles[0])
       }
     },
     [uploadFile]
@@ -173,7 +176,7 @@ export default function FileUpload() {
             <input
               ref={inputRef}
               type="file"
-              multiple 
+              // Removed the 'multiple' attribute here
               className="sr-only"
               onChange={handleFileChange}
             />
@@ -187,7 +190,7 @@ export default function FileUpload() {
             </div>
             
             <p className="mb-1 text-sm font-medium text-zinc-200 text-center transition-colors group-hover:text-zinc-100">
-              {isDragging ? "Drop your files here" : "Click to browse or drag and drop"}
+              {isDragging ? "Drop your file here" : "Click to browse or drag and drop"}
             </p>
             <p className="text-xs text-zinc-500">
               PDF, DOCX, TXT, PPT, and more

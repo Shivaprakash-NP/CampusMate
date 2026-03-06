@@ -158,7 +158,7 @@ export default function Chat() {
   };
 
   return (
-      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-100 selection:bg-purple-500/30 overflow-hidden">
+      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-100 selection:bg-cyan-500/30 overflow-hidden">
         
         <div className={`shrink-0 w-full z-40 transition-all duration-500 ease-in-out origin-top ${
             isFullScreen ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[100px] opacity-100'

@@ -59,7 +59,7 @@ export default function ChatSidebar({
             onClick={onNewChat} 
             title={!isSidebarOpen ? "New chat" : undefined}
             className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm rounded-lg font-medium transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap
-              bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 hover:text-purple-300
+            text-cyan-400
               ${isSidebarOpen ? "max-w-[260px]" : "max-w-[44px]"}
             `}
           >
@@ -92,7 +92,7 @@ export default function ChatSidebar({
                     }
                   `}
                 >
-                  <FolderOpen className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-purple-400" : "text-zinc-500 group-hover:text-zinc-400"}`} />
+                  <FolderOpen className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-cyan-400" : "text-zinc-500 group-hover:text-zinc-400"}`} />
                   <span className={`truncate text-left transition-opacity duration-300 ${isSidebarOpen ? "opacity-100" : "opacity-0"}`}>
                     {subject.title}
                   </span>

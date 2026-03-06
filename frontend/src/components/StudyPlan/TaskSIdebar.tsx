@@ -1,66 +1,63 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import moment from 'moment'
-import { X, Plus } from 'lucide-react'
+import { X, MonitorPlay, FileText } from 'lucide-react'
 import type { StudyTopic } from '@/shared/generated-plan'
 
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from "@/components/ui/accordion"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-
-export interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-}
 
 interface TaskSidebarProps {
   selectedDate: Date | null;
   onClose: () => void;
-  tasksForSelectedDate: Task[];
   topicsForSelectedDate: StudyTopic[];
-  onToggleTask: (dateKey: string, taskId: string) => void;
-  onAddTask: (e: React.FormEvent, dateKey: string, text: string) => void;
+  completedTopicIds: Set<string>;
+  onToggleTopic: (dateKey: string, topicIndex: number) => void;
 }
 
 export const TaskSidebar = ({
   selectedDate,
   onClose,
-  tasksForSelectedDate,
   topicsForSelectedDate,
-  onToggleTask,
-  onAddTask
+  completedTopicIds,
+  onToggleTopic
 }: TaskSidebarProps) => {
-  const [newTaskText, setNewTaskText] = useState("")
   const selectedDateKey = selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : "";
+  
+  // Local state for toggling subtopics inside the sidebar
+  const [completedSubtopics, setCompletedSubtopics] = useState<Set<string>>(new Set());
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskText.trim() || !selectedDateKey) return;
-    onAddTask(e, selectedDateKey, newTaskText);
-    setNewTaskText("");
-  };
+  // Reset local subtopic checklist when changing dates
+  useEffect(() => {
+    setCompletedSubtopics(new Set());
+  }, [selectedDateKey]);
+
+  const handleToggleSubtopic = (topicIdx: number, subIdx: number) => {
+    const key = `${selectedDateKey}-${topicIdx}-${subIdx}`;
+    setCompletedSubtopics(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   if (!selectedDate) return null;
 
+  // Added a safety fallback to ensure map doesn't fail if undefined is passed
+  const safeTopics = Array.isArray(topicsForSelectedDate) ? topicsForSelectedDate : [];
+
   return (
-    // Changed bg to #0b1220
-    <div className="w-[340px] bg-[#0b1220] flex flex-col border-l border-slate-800 animate-in slide-in-from-right duration-500 ease-out shadow-[-20px_0_40px_rgba(0,0,0,0.5)]">
+    <div className="w-full h-full bg-[#09090b] flex flex-col z-50">
       
       {/* HEADER */}
-      <div className="px-6 py-8 flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-slate-200">Day Details</h2>
+      <div className="px-6 py-6 flex items-start justify-between shrink-0 border-b border-zinc-800/40">
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Day Details</h2>
           <div className="flex items-center gap-2">
-             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+             <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+             <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">
                 {moment(selectedDate).format('dddd, MMM D')}
              </p>
           </div>
@@ -69,104 +66,121 @@ export const TaskSidebar = ({
           variant="ghost" 
           size="icon" 
           onClick={onClose} 
-          className="h-8 w-8 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+          className="h-8 w-8 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-zinc-100 transition-colors"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-10 space-y-10 custom-scrollbar">
+      {/* SCROLLABLE TOPICS AREA */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 custom-scrollbar">
         
-        {/* SECTION: TOPICS */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-2 text-slate-400">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.15em]">Topics</h3>
+          <div className="flex items-center justify-between pb-1">
+             <div className="flex items-center gap-2 text-zinc-500">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest">Study Topics</h3>
              </div>
-             <span className="text-[10px] text-slate-500 font-medium">{topicsForSelectedDate.length} Modules</span>
+             <span className="text-[11px] text-zinc-500 font-medium px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800/60">
+               {safeTopics.length} Modules
+             </span>
           </div>
           
-          <Accordion type="multiple" className="w-full space-y-2">
-            {topicsForSelectedDate.map((topic, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="border-none bg-slate-800/30 rounded-lg px-4 transition-colors hover:bg-slate-800/60">
-                <AccordionTrigger className="py-4 hover:no-underline group">
-                  <div className="flex flex-col items-start text-left gap-1">
-                    {/* High Priority Accent: Purple */}
-                    <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">{topic.subject}</span>
-                    <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{topic.topic}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
-                  {topic.subtopics && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {topic.subtopics.map((s, i) => (
-                        <span key={i} className="text-[9px] bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-slate-300">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-slate-500">
-                     <span className="h-1 w-1 rounded-full bg-slate-600" />
-                     <span>Estimated session: {topic.estimated_hours}h</span>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
-
-        <Separator className="bg-slate-800" />
-
-        {/* SECTION: TASKS */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-2 text-slate-400">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.15em]">Tasks</h3>
-             </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="relative group">
-            <input
-              type="text"
-              placeholder="New task..."
-              value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
-              className="w-full h-10 bg-slate-800/30 border border-slate-800 rounded-md pl-3 pr-10 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800/50 transition-all"
-            />
-            <button type="submit" className="absolute right-1 top-1 h-8 w-8 rounded flex items-center justify-center text-cyan-400 hover:bg-cyan-400 hover:text-slate-900 transition-all">
-              <Plus className="h-4 w-4" />
-            </button>
-          </form>
-
-          <div className="space-y-1">
-            {tasksForSelectedDate.map(task => (
-              <div 
-                key={task.id} 
-                className={`flex items-center space-x-4 p-3 rounded-xl transition-all group/task ${
-                  task.completed ? 'opacity-50' : 'hover:bg-slate-800/40'
-                }`}
-              >
-                <Checkbox 
-                  id={task.id}
-                  checked={task.completed}
-                  onCheckedChange={() => onToggleTask(selectedDateKey, task.id)}
-                  className="h-5 w-5 rounded-md border-slate-600 data-[state=checked]:bg-cyan-400 data-[state=checked]:border-cyan-400 transition-all"
-                />
-                <label
-                  htmlFor={task.id}
-                  className={`text-sm font-medium cursor-pointer transition-all ${
-                    task.completed ? 'line-through text-slate-500' : 'text-slate-200 group-hover/task:text-white'
+          <div className="space-y-3">
+            {safeTopics.map((topic, idx) => {
+              const isMainCompleted = completedTopicIds.has(`${selectedDateKey}-${idx}`);
+              
+              // Ensure we only render a subtopic section if there are actual, non-empty text strings
+              const validSubtopics = Array.isArray(topic.subtopics) 
+                ? topic.subtopics.filter(sub => typeof sub === 'string' && sub.trim() !== '')
+                : [];
+              
+              return (
+                <div 
+                  key={idx} 
+                  className={`flex flex-col p-4 rounded-xl border transition-all duration-300 group/topic ${
+                    isMainCompleted 
+                      ? 'bg-transparent border-transparent opacity-60' 
+                      : 'bg-zinc-900/20 border-zinc-800/40 hover:bg-zinc-900/40'
                   }`}
                 >
-                  {task.text}
-                </label>
-              </div>
-            ))}
-            
-            {tasksForSelectedDate.length === 0 && (
-               <div className="py-8 text-center space-y-2">
-                  <p className="text-xs text-slate-500 font-medium">No tasks defined for this date.</p>
+                  
+                  {/* MAIN TOPIC */}
+                  <div className="flex items-start space-x-3.5">
+                    <Checkbox 
+                      checked={isMainCompleted}
+                      onCheckedChange={() => onToggleTopic(selectedDateKey, idx)}
+                      className="mt-1 h-[18px] w-[18px] rounded-[4px] border-zinc-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500 transition-all"
+                    />
+                    
+                    <div className="flex flex-col gap-1 cursor-pointer flex-1 min-w-0 select-none" onClick={() => onToggleTopic(selectedDateKey, idx)}>
+                       <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider line-clamp-1">{topic.subject}</span>
+                       <span className={`text-[15px] leading-snug font-medium transition-colors ${isMainCompleted ? 'line-through text-zinc-500' : 'text-zinc-200 group-hover/topic:text-white'}`}>
+                         {topic.topic}
+                       </span>
+                       <div className="flex items-center gap-2 mt-1 text-zinc-500 text-[10px] font-medium uppercase tracking-wider">
+                          <span className="h-1 w-1 rounded-full bg-zinc-600" />
+                          <span>Est. {topic.estimated_hours}h</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* SUBTOPICS CHECKLIST + ICONS */}
+                  {validSubtopics.length > 0 && (
+                    <div className={`mt-4 pt-3 border-t border-zinc-800/50 flex flex-col gap-2 transition-opacity ${isMainCompleted ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                      {validSubtopics.map((sub, i) => {
+                        const isSubCompleted = completedSubtopics.has(`${selectedDateKey}-${idx}-${i}`);
+                        
+                        return (
+                          <div key={i} className="flex items-start justify-between gap-3 group/sub py-1">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                               <Checkbox 
+                                  checked={isSubCompleted}
+                                  onCheckedChange={() => handleToggleSubtopic(idx, i)}
+                                  className="mt-0.5 h-3.5 w-3.5 rounded-[3px] border-zinc-700 data-[state=checked]:bg-zinc-600 data-[state=checked]:text-white data-[state=checked]:border-zinc-600 transition-all"
+                               />
+                               <span 
+                                 className={`text-[12.5px] leading-snug cursor-pointer transition-colors mt-px select-none ${
+                                   isSubCompleted ? 'text-zinc-600 line-through' : 'text-zinc-400 group-hover/sub:text-zinc-300'
+                                 }`}
+                                 onClick={() => handleToggleSubtopic(idx, i)}
+                               >
+                                 {sub}
+                               </span>
+                            </div>
+
+                            {/* RESOURCES ACTION ICONS */}
+                            <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover/sub:opacity-100 transition-opacity">
+                               <button 
+                                 onClick={(e) => { e.stopPropagation(); console.log(`Open Video for: ${sub}`) }}
+                                 className="p-1.5 text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-md transition-all"
+                                 title="Watch Video Lecture"
+                               >
+                                  <MonitorPlay className="h-[14px] w-[14px]" />
+                               </button>
+                               <button 
+                                 onClick={(e) => { e.stopPropagation(); console.log(`Open Article for: ${sub}`) }}
+                                 className="p-1.5 text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-md transition-all"
+                                 title="Read Study Material"
+                               >
+                                  <FileText className="h-[14px] w-[14px]" />
+                               </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  
+                </div>
+              )
+            })}
+
+            {safeTopics.length === 0 && (
+               <div className="py-10 text-center flex flex-col items-center justify-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-zinc-900 border border-zinc-800/60 flex items-center justify-center mb-1">
+                    <span className="block h-1.5 w-1.5 rounded-full bg-zinc-600" />
+                  </div>
+                  <p className="text-[13px] text-zinc-500 font-medium">No topics scheduled for this date.</p>
                </div>
             )}
           </div>
@@ -176,7 +190,8 @@ export const TaskSidebar = ({
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #3f3f46; }
       `}} />
     </div>
   )
