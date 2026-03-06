@@ -1,20 +1,21 @@
+// StudyPlan.tsx
 "use client"
 
 import { useState, useMemo } from "react"
 import { Calendar, LayoutList, Target, Clock, Zap, CheckCircle, CircleDashed, ArrowRight, ArrowLeft } from "lucide-react"
 import moment from "moment"
 import Navbar from "../Navbar"
-import { type ExamStudyPlan } from "@/shared/generated-plan" // Removed CAMPUSMATE_PLAN
+import { type ExamStudyPlan } from "@/shared/generated-plan" 
 import CalendarView from "./CalendarView"
 
 interface StudyPlanProps {
   planSummary?: any;
-  planData?: any; // This receives your backend data object
+  planData?: any; 
   onBack?: () => void;
 }
 
 const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'calendar', setView: (v: 'text' | 'calendar') => void, onBack?: () => void, title?: string }) => (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-zinc-800/60">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-zinc-800/60 transition-all">
       <div className="flex flex-col gap-1.5">
         {onBack && (
             <button
@@ -33,7 +34,7 @@ const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'cal
         </p>
       </div>
 
-      <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-fit">
+      <div className="flex items-center rounded-lg bg-zinc-900/80 p-1 border border-zinc-800/80 shadow-sm w-fit shrink-0">
         <button
             onClick={() => setView('text')}
             className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${view === 'text'
@@ -59,15 +60,9 @@ const StudyPlanHeader = ({ view, setView, onBack, title }: { view: 'text' | 'cal
     </div>
 )
 
-const PlanOverview = ({ title, startDate, endDate }: { title?: string, startDate?: string, endDate?: string }) => {
-  // Dynamically calculate progress based on backend dates
+const PlanOverview = ({ title, startDate, endDate, progress }: { title?: string, startDate?: string, endDate?: string, progress: number }) => {
   const start = startDate ? moment(startDate) : moment();
   const end = endDate ? moment(endDate) : moment().add(30, 'days');
-  const today = moment();
-
-  const totalDays = Math.max(1, end.diff(start, 'days') + 1);
-  const completedDays = Math.max(0, today.diff(start, 'days'));
-  const percentage = Math.min(100, Math.max(0, Math.round((completedDays / totalDays) * 100)));
 
   return (
       <div className="flex flex-col gap-8 py-2">
@@ -95,33 +90,19 @@ const PlanOverview = ({ title, startDate, endDate }: { title?: string, startDate
               <span className="text-sm font-medium text-zinc-200">
               {start.format('MMM DD')} - {end.format('MMM DD')}
             </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-zinc-500">
-                <Clock className="size-3.5" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Intensity</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-200">Adaptive</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-zinc-500">
-                <Zap className="size-3.5" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Focus Score</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-200">Optimal</span>
-            </div>
+            </div> 
           </div>
         </div>
 
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-zinc-300">Overall Progress</span>
-            <span className="text-zinc-500 font-medium tabular-nums">{percentage}%</span>
+            <span className="font-medium text-zinc-300">Topic Completion Progress</span>
+            <span className="text-cyan-500 font-medium tabular-nums">{progress}%</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80 shadow-inner">
             <div
-                className="h-full bg-purple-500 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${percentage}%` }}
+                className="h-full bg-cyan-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(6,182,212,0.4)]"
+                style={{ width: `${progress}%` }}
             />
           </div>
         </div>
@@ -132,7 +113,6 @@ const PlanOverview = ({ title, startDate, endDate }: { title?: string, startDate
 const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
   const todayStr = moment().format('YYYY-MM-DD');
 
-  // Find today's plan, if not found, jump to the first day of the schedule
   let currentDayPlan = normalizedPlan.plan.find(p => p.date === todayStr);
   if (!currentDayPlan && normalizedPlan.plan.length > 0) {
     currentDayPlan = normalizedPlan.plan[0];
@@ -152,7 +132,7 @@ const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
             {isActuallyToday ? "Today's Focus" : "Next Focus"}
           </h2>
           <span className="text-xs font-medium text-zinc-500">
@@ -169,7 +149,7 @@ const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
                 <div className="flex items-start gap-3.5">
                   <div className="mt-0.5 flex-shrink-0">
                     {item.active ? (
-                        <CheckCircle className="size-4 text-purple-400" />
+                        <CheckCircle className="size-4 text-cyan-400" />
                     ) : (
                         <CircleDashed className="size-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
                     )}
@@ -203,7 +183,6 @@ const TodaysFocus = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
 
 const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan }) => {
   const todayStr = moment().format('YYYY-MM-DD');
-  // Get upcoming days (excluding today) and take the next 3
   const upcomingDays = normalizedPlan.plan.filter(p => p.date > todayStr).slice(0, 3);
 
   return (
@@ -232,7 +211,7 @@ const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan })
                     <ArrowRight className="size-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
                   </div>
                   <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors">
+                <span className="text-sm font-medium text-zinc-200 group-hover:text-cyan-400 transition-colors">
                   {firstTopic?.subject || "Study Session"}
                 </span>
                     <span className="text-xs text-zinc-500 line-clamp-1">
@@ -253,42 +232,91 @@ const UpcomingSchedule = ({ normalizedPlan }: { normalizedPlan: ExamStudyPlan })
 
 const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
   const [view, setView] = useState<'text' | 'calendar'>('text')
+  
+  const [completedTopicIds, setCompletedTopicIds] = useState<Set<string>>(new Set())
 
-  // Adapter: Convert the backend schedulePerDayList object into the ExamStudyPlan interface
+  const toggleTopicCompletion = (dateKey: string, topicIndex: number) => {
+    const id = `${dateKey}-${topicIndex}`;
+    setCompletedTopicIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }
+
   const normalizedPlanData: ExamStudyPlan = useMemo(() => {
-    // Return an empty, safe structure instead of dummy data if the backend data is missing
     if (!planData || !planData.schedulePerDayList) {
-      return {
-        exam_date: "",
-        total_days: 0,
-        daily_study_hours: 0,
-        strategy: "",
-        plan: []
-      };
+      return { exam_date: "", total_days: 0, daily_study_hours: 0, strategy: "", plan: [] };
     }
+
+    const daysMap = new Map<string, any>();
+
+    planData.schedulePerDayList.forEach((dayItem: any) => {
+      const dateKey = dayItem.date ? moment(dayItem.date).format('YYYY-MM-DD') : null;
+      if (!dateKey) return;
+
+      const mappedTopics = (dayItem.topics || []).map((t: any) => {
+        const rawSubtopics = t.subtopics || t.subTopics || t.tasks || t.modules || [];
+        const formattedSubtopics = Array.isArray(rawSubtopics) 
+          ? rawSubtopics.map(sub => typeof sub === 'string' ? sub : (sub.title || sub.name || sub.description || "Subtopic"))
+          : [];
+
+        // --- THIS IS THE FIX ---
+        return {
+          // Put the parent syllabus title (or "Study Module") as the cyan category text
+          subject: (t.syllabus && t.syllabus.title) || (t.parentTopic && t.parentTopic.title) || "Study Module",
+          
+          // Put the actual specific topic title as the large white text
+          topic: t.title || t.topicName || t.description || "Study Session",
+          
+          estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
+          subtopics: formattedSubtopics
+        };
+      });
+
+      if (daysMap.has(dateKey)) {
+        const existingDay = daysMap.get(dateKey);
+        existingDay.topics = [...existingDay.topics, ...mappedTopics];
+      } else {
+        daysMap.set(dateKey, {
+          date: dateKey,
+          focus: "Daily Study Focus",
+          tasks: [],
+          topics: mappedTopics
+        });
+      }
+    });
+
+    const mergedPlanArray = Array.from(daysMap.values())
+      .sort((a, b) => moment(a.date).valueOf() - moment(b.date).valueOf())
+      .map((dayData, index) => ({
+        ...dayData,
+        day: index + 1
+      }));
 
     return {
       exam_date: planData.endDate || "",
-      total_days: planData.schedulePerDayList.length,
-      daily_study_hours: 2, // Assuming a default of 2 hours, you can update this if your backend provides it
+      total_days: mergedPlanArray.length,
+      daily_study_hours: 2, 
       strategy: "Adaptive Backend Plan",
-      plan: planData.schedulePerDayList.map((dayItem: any, index: number) => ({
-        day: index + 1,
-        date: dayItem.date,
-        focus: "Daily Study Focus",
-        tasks: [],
-        topics: (dayItem.topics || []).map((t: any) => ({
-          subject: t.title || t.subjectName || t.subject || "Topic Focus",
-          topic: t.description || t.topicName || t.topic || "Study Session",
-          estimated_hours: t.duration || t.estimatedHours || t.estimated_hours || 2,
-          subtopics: t.subtopics || []
-        }))
-      }))
+      plan: mergedPlanArray
     };
   }, [planData]);
 
+  const totalTopicsCount = useMemo(() => {
+    return normalizedPlanData.plan.reduce((total, day) => total + day.topics.length, 0);
+  }, [normalizedPlanData]);
+
+  const progressPercentage = totalTopicsCount === 0 
+    ? 0 
+    : Math.min(100, Math.round((completedTopicIds.size / totalTopicsCount) * 100));
+
   return (
-      <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 flex flex-col">
+      <div className="min-h-screen bg-[#09090b] font-sans text-zinc-100 flex flex-col selection:bg-cyan-500/30">
 
         {!onBack && (
             <div className="sticky top-0 z-40 w-full">
@@ -296,7 +324,11 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
             </div>
         )}
 
-        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
+        <main 
+          className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col gap-8 md:gap-10 transition-all duration-300 ease-in-out ${
+            view === 'calendar' ? 'max-w-[1600px]' : 'max-w-5xl'
+          }`}
+        >
 
           <StudyPlanHeader
               view={view}
@@ -307,18 +339,23 @@ const StudyPlan = ({ planSummary, planData, onBack }: StudyPlanProps) => {
 
           <div className="w-full">
             {view === 'text' ? (
-                <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out">
+                <div className="flex flex-col gap-10 w-full">
                   <PlanOverview
                       title={planSummary?.title || planData?.title}
                       startDate={planData?.startDate}
                       endDate={planData?.endDate}
+                      progress={progressPercentage}
                   />
                   <TodaysFocus normalizedPlan={normalizedPlanData} />
                   <UpcomingSchedule normalizedPlan={normalizedPlanData} />
                 </div>
             ) : (
-                <div className="w-full rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-2 sm:p-6 shadow-sm backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 ease-out">
-                  <CalendarView planData={normalizedPlanData} />
+                <div className="w-full rounded-2xl border border-zinc-800/60 bg-zinc-900/20 p-2 sm:p-6 shadow-xl backdrop-blur-sm">
+                  <CalendarView 
+                    planData={normalizedPlanData} 
+                    completedTopicIds={completedTopicIds}
+                    onToggleTopic={toggleTopicCompletion}
+                  />
                 </div>
             )}
           </div>

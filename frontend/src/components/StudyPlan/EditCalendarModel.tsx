@@ -1,3 +1,4 @@
+// EditCalendarModal.tsx
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -67,7 +68,7 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
     onClose()
   }
 
-  // Semantic styling logic mapped to premium Zinc/Purple/Emerald theme
+  // Semantic styling logic mapped to premium Zinc/Cyan/Emerald theme
   const eventPropGetter = (event: any) => {
     const subject = event.resource?.subject?.toLowerCase() || ''
 
@@ -77,9 +78,9 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
     let borderColor = 'rgba(161, 161, 170, 0.2)'
 
     if (subject.includes('exam') || subject.includes('os') || subject.includes('operating')) {
-      color = '#c084fc' // purple-400
-      bg = 'rgba(168, 85, 247, 0.1)'
-      borderColor = 'rgba(168, 85, 247, 0.2)'
+      color = '#22d3ee' // cyan-400
+      bg = 'rgba(6, 182, 212, 0.1)'
+      borderColor = 'rgba(6, 182, 212, 0.2)'
     } else if (subject.includes('dbms') || subject.includes('web')) {
       color = '#34d399' // emerald-400
       bg = 'rgba(16, 185, 129, 0.1)'
@@ -115,12 +116,12 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
               Reschedule Plan
             </DialogTitle>
             <DialogDescription className="text-[13px] text-zinc-400">
-              Drag and drop topics to different days. Click apply to save your new schedule.
+              Drag and drop topics to different days. Click "+X more" to expand crowded days. Click apply to save your new schedule.
             </DialogDescription>
           </div>
         </DialogHeader>
 
-        <div className="h-[60vh] min-h-[400px] mt-5 bg-zinc-950/50 border border-zinc-800/40 rounded-xl overflow-hidden shadow-inner">
+        <div className="h-[60vh] min-h-[400px] mt-5 bg-zinc-950/50 border border-zinc-800/40 rounded-xl overflow-hidden shadow-inner relative">
           {/* @ts-ignore - Bypassing strictly broken React Big Calendar Overloads */}
           <DnDCalendar
             localizer={localizer}
@@ -134,6 +135,10 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
             resizable={false}
             eventPropGetter={eventPropGetter}
             toolbar={true}
+            popup={true} // Enables the native overlay for hidden events
+            onShowMore={(events, date) => {
+              // This empty handler intercepts the default navigation behavior, forcing the popup to render instead of trying to switch views.
+            }}
             className="dnd-calendar-custom"
           />
         </div>
@@ -169,14 +174,53 @@ export function EditCalendarModal({ isOpen, onClose, initialEvents, onApply }: E
           .dnd-calendar-custom .rbc-off-range { color: #52525b !important; } 
           .dnd-calendar-custom .rbc-today { background: rgba(255, 255, 255, 0.02) !important; }
           .dnd-calendar-custom .rbc-date-cell { padding-right: 8px; padding-top: 6px; font-size: 0.75rem; color: #d4d4d8; font-weight: 500; }
-          .dnd-calendar-custom .rbc-now .rbc-date-cell { color: #c084fc !important; font-weight: 700; }
+          .dnd-calendar-custom .rbc-now .rbc-date-cell { color: #22d3ee !important; font-weight: 700; }
+          
+          /* Customizing the toolbar */
           .dnd-calendar-custom .rbc-toolbar { padding: 12px 16px; border-bottom: 1px solid rgba(39, 39, 42, 0.6); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
           .dnd-calendar-custom .rbc-toolbar button { color: #a1a1aa; border: 1px solid rgba(39, 39, 42, 0.8); font-size: 0.75rem; padding: 4px 12px; border-radius: 6px; transition: all 0.2s; background: rgba(24, 24, 27, 0.5); font-weight: 500; }
           .dnd-calendar-custom .rbc-toolbar button:hover { color: #f4f4f5; background: rgba(39, 39, 42, 0.8); }
           .dnd-calendar-custom .rbc-toolbar button.rbc-active { background-color: rgba(39, 39, 42, 0.9); color: #f4f4f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); border-color: rgba(82, 82, 91, 0.5); }
           .dnd-calendar-custom .rbc-toolbar .rbc-toolbar-label { font-weight: 600; color: #f4f4f5; letter-spacing: -0.01em; }
+          
+          /* Show More Text - Ensure it has a higher z-index and is clearly clickable */
+          .dnd-calendar-custom .rbc-show-more { 
+            color: #22d3ee !important; 
+            font-size: 0.65rem !important; 
+            font-weight: 600 !important; 
+            background: transparent !important; 
+            padding-top: 4px; 
+            transition: color 0.2s; 
+            position: relative;
+            z-index: 10;
+            cursor: pointer;
+          }
+          .dnd-calendar-custom .rbc-show-more:hover { color: #67e8f9 !important; }
+          
+          /* POPUP OVERLAY STYLING */
+          .dnd-calendar-custom .rbc-overlay { 
+            background-color: #09090b !important; 
+            border: 1px solid rgba(63, 63, 70, 0.6) !important; 
+            border-radius: 12px !important; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5) !important; 
+            padding: 12px !important; 
+            z-index: 9999 !important; /* Force overlay to front */
+            min-width: 220px;
+          }
+          .dnd-calendar-custom .rbc-overlay-header { 
+            border-bottom: 1px solid rgba(63, 63, 70, 0.4) !important; 
+            padding-bottom: 10px !important; 
+            margin-bottom: 10px !important; 
+            color: #f4f4f5 !important; 
+            font-weight: 600 !important; 
+            font-size: 0.85rem !important; 
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          
+          /* Drag and Drop behaviors */
           .rbc-addons-dnd .rbc-addons-dnd-resizable { cursor: grab; }
-          .rbc-addons-dnd-drag-preview { opacity: 0.8; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4)); border: 1px solid rgba(168, 85, 247, 0.5) !important; border-radius: 6px !important; }
+          .rbc-addons-dnd-drag-preview { opacity: 0.8; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4)); border: 1px solid rgba(6, 182, 212, 0.5) !important; border-radius: 6px !important; }
           .rbc-event { padding: 0 !important; background-color: transparent !important; }
         `}} />
       </DialogContent>

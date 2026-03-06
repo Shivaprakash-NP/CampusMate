@@ -23,8 +23,8 @@ export default function ChatHeader({ setIsSidebarOpen, isFullScreen, setIsFullSc
         </button>
         
         <div className="flex items-center gap-2.5 px-1 py-1.5 cursor-default">
-          {/* Electric Purple AI Indicator */}
-          <span className="flex h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+          {/* Cyan AI Indicator */}
+          <span className="flex h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
           <span className="text-sm md:text-base font-semibold tracking-tight text-zinc-100">
             CampusMate AI
           </span>
@@ -33,12 +33,7 @@ export default function ChatHeader({ setIsSidebarOpen, isFullScreen, setIsFullSc
       
       {/* Right side: Action Tools */}
       <div className="flex items-center gap-2 md:gap-3">
-        <button 
-          className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-all duration-200" 
-          title="Share chat"
-        >
-          <Share className="h-4 w-4" />
-        </button>
+        
         
         {/* Fullscreen Toggle */}
         <button 

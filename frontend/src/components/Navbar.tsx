@@ -21,31 +21,29 @@ const Navbar = () => {
   // -----------------------------
 
   return (
-    <header className="w-full border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md">
-      {/* High-density padding, slightly taller for breathing room */}
+    <header className="w-full border-b border-zinc-800/60 bg-[#09090b]/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 md:h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-8">
 
         {/* Brand */}
         <div className="flex items-center gap-2.5 cursor-pointer">
-          {/* Desktop/Tablet Logo */}
           <span className="hidden text-sm font-semibold tracking-tight text-zinc-100 sm:block md:text-base">
             CampusMate
           </span>
-          {/* Electric Purple Accent Dot (Desktop) */}
-          <span className="hidden h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(168,85,247,0.6)] sm:block" />
+          {/* Cyan Accent Dot */}
+          <span className="hidden h-1.5 w-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)] sm:block" />
 
           {/* Mobile Minimalist Logo */}
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 sm:hidden shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+            <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
           </div>
         </div>
 
-        {/* Center Nav - Vercel/Linear style segmented control */}
+        {/* Center Nav */}
         <nav
           className="relative flex items-center rounded-lg bg-zinc-900/80 border border-zinc-800/80 p-1 w-[240px] sm:w-[320px] shadow-sm"
           onMouseLeave={() => setHoverIndex(null)}
         >
-          {/* Sliding pill: Deep charcoal with subtle lift */}
+          {/* Sliding pill */}
           <span
             className="absolute h-8 rounded-md bg-zinc-800 border border-zinc-700/50 shadow-sm transition-transform duration-300 ease-out"
             style={{

@@ -67,7 +67,7 @@ const CodeBlock = ({ inline, className, children, ...props }: any) => {
   // Standard inline code (e.g., `const x = 5;` inside a paragraph)
   return (
     <code 
-      className="rounded-md border border-purple-500/20 bg-purple-500/10 px-1.5 py-0.5 font-mono text-[13px] text-purple-400" 
+      className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[13px] text-cyan-400" 
       {...props}
     >
       {children}
@@ -111,7 +111,7 @@ export default function ChatMessage({ message }: Props) {
                   a: ({ node, ...props }) => (
                     <a
                       {...props}
-                      className="font-medium text-purple-400 underline decoration-purple-400/30 underline-offset-4 transition-colors hover:text-purple-300 hover:decoration-purple-400"
+                      className="font-medium text-cyan-400 underline decoration-cyan-400/30 underline-offset-4 transition-colors hover:text-cyan-300 hover:decoration-cyan-400"
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -119,7 +119,7 @@ export default function ChatMessage({ message }: Props) {
                     </a>
                   ),
                   blockquote: ({ node, ...props }) => (
-                    <blockquote className="border-l-2 border-purple-500/50 bg-zinc-900/50 px-4 py-2 my-4 italic text-zinc-400 rounded-r-lg" {...props} />
+                    <blockquote className="border-l-2 border-cyan-500/50 bg-zinc-900/50 px-4 py-2 my-4 italic text-zinc-400 rounded-r-lg" {...props} />
                   ),
                 }}
               >

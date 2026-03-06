@@ -42,7 +42,7 @@ export default function MessageFeed({ messages, isLoading, isInitializing }: Pro
         
         {isLoading && (
           <div className="flex w-full justify-start animate-in fade-in duration-300">
-            <div className="flex items-center gap-2.5 px-5 py-4 text-[13px] font-medium text-purple-400 tracking-wide">
+            <div className="flex items-center gap-2.5 px-5 py-4 text-[13px] font-medium text-cyan-400 tracking-wide">
               <Loader2 className="h-4 w-4 animate-spin" />
               CampusMate is thinking...
             </div>
