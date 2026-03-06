@@ -1,7 +1,6 @@
 package com.collegemate.collegemate.syllabus;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -17,16 +16,11 @@ public class ArticleValidationService {
 
     private final RestTemplate restTemplate;
 
-    // OPTIMIZATION 1: Constructor Injection with 3-Second Timeouts
     public ArticleValidationService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(3))
+        this.restTemplate = restTemplateBuilder.connectTimeout(Duration.ofSeconds(2)).readTimeout(Duration.ofSeconds(2))
                 .build();
     }
 
-    // OPTIMIZATION 2: Cache successful validations
-    @Cacheable(value = "articleValidation", key = "#targetUrl", unless = "#result == false")
     public boolean isArticleUrlValid(String targetUrl) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -45,8 +39,6 @@ public class ArticleValidationService {
             return response.getStatusCode().is2xxSuccessful();
 
         } catch (RestClientException e) {
-            // OPTIMIZATION 3: Removed verbose error logging.
-            // Catches Timeouts, DNS errors, 404s, and 500s silently and triggers fallback.
             return false;
         } catch (Exception e) {
             return false;
