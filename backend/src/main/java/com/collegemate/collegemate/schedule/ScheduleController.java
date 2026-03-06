@@ -59,4 +59,15 @@ public class ScheduleController {
             throw new RuntimeException("Error Deleting Your Plan");
         }
     }
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updatePlan(@RequestBody Schedule newPlan) {
+        try {
+            Schedule updated = scheduleService.updateSchedule(newPlan);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error updating Schedule");
+        }
+    }
 }
