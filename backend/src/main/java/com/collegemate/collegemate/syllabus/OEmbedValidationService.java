@@ -1,7 +1,6 @@
 package com.collegemate.collegemate.syllabus;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,13 +17,10 @@ public class OEmbedValidationService {
     private final RestTemplate restTemplate;
 
     public OEmbedValidationService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder
-                .connectTimeout(Duration.ofSeconds(3))
-                .readTimeout(Duration.ofSeconds(3))
+        this.restTemplate = restTemplateBuilder.connectTimeout(Duration.ofSeconds(2)).readTimeout(Duration.ofSeconds(2))
                 .build();
     }
 
-    @Cacheable(value = "youtubeValidation", key = "#targetUrl", unless = "#result == false")
     public boolean isUrlValid(String providerEndpoint, String targetUrl) {
         try {
             URI requestUri = UriComponentsBuilder.fromHttpUrl(providerEndpoint)
