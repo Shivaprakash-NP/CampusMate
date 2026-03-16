@@ -85,7 +85,7 @@ Want to spin this up locally? It's super easy.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/CampusMate.git
+git clone https://github.com/Shivaprakash-NP/CampusMate.git
 cd CampusMate/backend
 ```
 
